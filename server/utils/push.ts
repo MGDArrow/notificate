@@ -1,5 +1,6 @@
 import webpush from 'web-push'
 import { useRuntimeConfig } from '#imports'
+import { removeSubscription } from './db' // добавьте импорт
 
 export async function sendNotification(subscription: any, group: string, message: string) {
   const config = useRuntimeConfig()
@@ -7,16 +8,11 @@ export async function sendNotification(subscription: any, group: string, message
   const privateKey = config.private.vapidPrivateKey
 
   if (!publicKey || !privateKey) {
-    console.error('VAPID keys are missing! Check environment variables.')
-    throw new Error('VAPID keys not configured')
+    console.error('VAPID keys missing')
+    return
   }
 
-  // Устанавливаем VAPID-детали при каждом вызове (можно вынести, но безопаснее здесь)
-  webpush.setVapidDetails(
-    'mailto:your-email@example.com',
-    publicKey,
-    privateKey
-  )
+  webpush.setVapidDetails('mailto:your-email@example.com', publicKey, privateKey)
 
   const payload = JSON.stringify({
     title: 'Новое уведомление',
@@ -26,8 +22,14 @@ export async function sendNotification(subscription: any, group: string, message
 
   try {
     await webpush.sendNotification(subscription, payload)
-  } catch (err) {
-    console.error('Push failed for subscription:', subscription.endpoint, err)
+  } catch (err: any) {
+    // Если подписка устарела или аннулирована — удаляем её из базы
+    if (err.statusCode === 410) {
+      console.log(`[Push] Removing expired subscription for group ${group}:`, subscription.endpoint)
+      removeSubscription(group, subscription.endpoint)
+    } else {
+      console.error(`[Push] Failed for ${subscription.endpoint}:`, err)
+    }
     throw err // или обработайте по-своему
   }
 }

@@ -1,56 +1,43 @@
 export default defineNuxtConfig({
-  modules: ['@vite-pwa/nuxt'],
-  pwa: {
-    manifest: {
-      name: 'Group Notifier',
-      short_name: 'Notifier',
-      description: 'Получайте уведомления по группам',
-      theme_color: '#ffffff',
-      icons: [
+  app: {
+    head: {
+      title: 'Стирка Добра',
+      charset: 'utf-8',
+      viewport: 'width=device-width, initial-scale=1, maximum-scale=2',
+      htmlAttrs: {
+        lang: 'ru',
+      },
+      meta: [
         {
-          src: 'icon-192.png',
-          sizes: '192x192',
-          type: 'image/png',
+          name: 'description',
+          content:
+            'Упрвление стирками — Официальный сайт Автономной Некомерческой Организации "ДоброГорловка"',
+        },
+        { name: 'keywords', content: 'АНО, Доброгорловка' },
+        { name: 'theme-color', content: '#a6c729' },
+        { name: 'author', content: 'MGDArrow' },
+        { name: 'creator', content: 'MGDArrow' },
+        { name: 'robots', content: 'noindex' },
+        {
+          name: 'apple-mobile-web-app-title',
+          content: 'Упрвление стирками — Доброгорловка',
         },
       ],
-    },
-    workbox: {
-    navigateFallback: null,
-    runtimeCaching: [
-      {
-        // Основная страница и все вложенные маршруты (SPA-навигация)
-        urlPattern: ({ request }) => request.mode === 'navigate',
-        handler: 'NetworkFirst',
-        options: {
-          cacheName: 'pages-cache',
-          expiration: {
-            maxEntries: 50,
-            maxAgeSeconds: 60 * 60 * 24, // 1 день
-          },
-          networkTimeoutSeconds: 10,
-        },
-      },
-
-    ],
-  },
-      injectRegister: 'auto',
-  registerSw: true,
-  swUrl: '/sw.js',
-    registerType: 'autoUpdate',
-    devOptions: {
-      enabled: true,
-      type: 'module',
+      link: [
+        { rel: 'shortcut icon', href: '/favicon.ico' },
+        { rel: 'manifest', href: '/manifest.json' },
+      ],
     },
   },
   nitro: {
     preset: 'node-server', // для Docker
   },
-runtimeConfig: {
-  public: {
-    vapidPublicKey: process.env.NUXT_PUBLIC_VAPID_PUBLIC_KEY,
-  },
-  private: {
-    vapidPrivateKey: process.env.NUXT_PRIVATE_VAPID_PRIVATE_KEY,
-  },
-}
+  runtimeConfig: {
+    public: {
+      vapidPublicKey: process.env.NUXT_PUBLIC_VAPID_PUBLIC_KEY,
+    },
+    private: {
+      vapidPrivateKey: process.env.NUXT_PRIVATE_VAPID_PRIVATE_KEY,
+    },
+  }
 })

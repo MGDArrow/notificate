@@ -1,3 +1,23 @@
+self.addEventListener('push', (event) => {
+  let data = {}
+  if (event.data) {
+    try {
+      data = event.data.json()
+    } catch {
+      data = { title: 'Новое уведомление', body: event.data.text() }
+    }
+  }
+  const options = {
+    body: data.body || 'У вас новое уведомление',
+    icon: '/icon-192.png',
+    data: { group: data.group || '' },
+    vibrate: [100, 50, 100],
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'Уведомление', options)
+  )
+})
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   const group = event.notification.data?.group || ''
@@ -8,6 +28,6 @@ self.addEventListener('notificationclick', (event) => {
         if (client.url.includes(url) && 'focus' in client) return client.focus()
       }
       if (clients.openWindow) return clients.openWindow(url)
-    })
+      })
   )
 })

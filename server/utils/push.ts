@@ -10,9 +10,14 @@ webpush.setVapidDetails(
   vapidPrivate
 )
 
-export async function sendNotification(subscription: any, payload: string) {
+export async function sendNotification(subscription: any, group: string, message: string) {
   try {
-    await webpush.sendNotification(subscription, payload)
+  const payload = JSON.stringify({
+    title: 'Новое уведомление',
+    body: message,
+    group: group,
+  })
+  await webpush.sendNotification(subscription, payload)
   } catch (err) {
     console.error('Push failed', err)
   }

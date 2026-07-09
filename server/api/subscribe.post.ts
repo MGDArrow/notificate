@@ -9,6 +9,6 @@ export default defineEventHandler(async (event) => {
   }
   addSubscription(group, subscription)
   // опционально: отправить приветственное уведомление
-  await sendNotification(subscription, `Вы подписаны на группу ${group}`)
+  await sendNotification(subscription,group,  `Вы подписаны на группу ${group}`)
   return { success: true, group }
 })

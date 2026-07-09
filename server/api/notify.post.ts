@@ -7,19 +7,19 @@ export default defineEventHandler(async (event) => {
     throw createError({ status: 400, message: 'Missing x-group header' })
   }
   const body = await readBody(event)
-  const text = typeof body === 'string' ? body : body.text || 'Новое уведомление'
+  const text = typeof body === 'string' ? body : body.message || 'Новое уведомление'
 
-  console.log(text, body);
+  console.log( body);
 
-  return text
+  addMessage(group, text)
+
+  console.log('Добавлен Message');
   
-  // // сохраняем в архив
-  // addMessage(group, text)
-  
-  // // отправляем push всем подписанным
-  // const subscriptions = getSubscriptions(group)
-  // const results = await Promise.allSettled(
-  //   subscriptions.map(sub => sendNotification(sub, text))
-  // )
-  // return { sent: results.filter(r => r.status === 'fulfilled').length }
+  const subscriptions = getSubscriptions(group)
+  console.log('Подписки', subscriptions);
+  const results = await Promise.allSettled(
+    subscriptions.map(sub => sendNotification(sub, group, text))
+  )
+  console.log('Результаты', results);
+  return { sent: results.filter(r => r.status === 'fulfilled').length }
 })

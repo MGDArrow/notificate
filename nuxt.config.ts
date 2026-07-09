@@ -15,8 +15,24 @@ export default defineNuxtConfig({
       ],
     },
     workbox: {
-      navigateFallback: '/',
-    },
+    navigateFallback: null,
+    runtimeCaching: [
+      {
+        // Основная страница и все вложенные маршруты (SPA-навигация)
+        urlPattern: ({ request }) => request.mode === 'navigate',
+        handler: 'NetworkFirst',
+        options: {
+          cacheName: 'pages-cache',
+          expiration: {
+            maxEntries: 50,
+            maxAgeSeconds: 60 * 60 * 24, // 1 день
+          },
+          networkTimeoutSeconds: 10,
+        },
+      },
+
+    ],
+  },
       injectRegister: 'auto',
   registerSw: true,
   swUrl: '/sw.js',

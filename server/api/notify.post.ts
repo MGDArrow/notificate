@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const text = typeof body === 'string' ? body : body.text || 'Новое уведомление'
 
-  console.log(text);
+  console.log(text, body);
 
   return text
   

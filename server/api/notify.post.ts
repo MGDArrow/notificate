@@ -10,6 +10,8 @@ export default defineEventHandler(async (event) => {
   const text = typeof body === 'string' ? body : body.text || 'Новое уведомление'
 
   console.log(text);
+
+  return text
   
   // // сохраняем в архив
   // addMessage(group, text)
@@ -19,5 +21,5 @@ export default defineEventHandler(async (event) => {
   // const results = await Promise.allSettled(
   //   subscriptions.map(sub => sendNotification(sub, text))
   // )
-  return { sent: results.filter(r => r.status === 'fulfilled').length }
+  // return { sent: results.filter(r => r.status === 'fulfilled').length }
 })

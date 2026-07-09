@@ -29,12 +29,12 @@ export default defineNuxtConfig({
   nitro: {
     preset: 'node-server', // для Docker
   },
-  runtimeConfig: {
-    public: {
-      vapidPublicKey: process.env.VAPID_PUBLIC_KEY,
-    },
-    private: {
-      vapidPrivateKey: process.env.VAPID_PRIVATE_KEY,
-    },
+runtimeConfig: {
+  public: {
+    vapidPublicKey: process.env.NUXT_PUBLIC_VAPID_PUBLIC_KEY,
   },
+  private: {
+    vapidPrivateKey: process.env.NUXT_PRIVATE_VAPID_PRIVATE_KEY,
+  },
+}
 })

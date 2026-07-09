@@ -6,19 +6,27 @@
 </template>
 
 <script setup>
+const config = useRuntimeConfig()
+const vapidPublicKey = config.public.vapidPublicKey
 const emit = defineEmits(['subscribed'])
 const key = ref('')
 
 async function subscribe() {
-  if (!key.value.trim()) return
-  // запрашиваем разрешение и получаем подписку
+    if (!key.value.trim()) return
+
+  if (!vapidPublicKey) {
+    alert('VAPID ключ не настроен. Обратитесь к администратору.')
+    return
+  }
+
   const permission = await Notification.requestPermission()
   if (permission !== 'granted') return alert('Нужно разрешение')
 
   const registration = await navigator.serviceWorker.ready
+  const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey)
   const subscription = await registration.pushManager.subscribe({
     userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(useRuntimeConfig().public.vapidPublicKey)
+    applicationServerKey
   })
 
   const result = await $fetch('/api/subscribe', {

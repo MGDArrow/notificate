@@ -8,14 +8,16 @@ export default defineEventHandler(async (event) => {
   }
   const body = await readBody(event)
   const text = typeof body === 'string' ? body : body.text || 'Новое уведомление'
+
+  console.log(text);
   
-  // сохраняем в архив
-  addMessage(group, text)
+  // // сохраняем в архив
+  // addMessage(group, text)
   
-  // отправляем push всем подписанным
-  const subscriptions = getSubscriptions(group)
-  const results = await Promise.allSettled(
-    subscriptions.map(sub => sendNotification(sub, text))
-  )
+  // // отправляем push всем подписанным
+  // const subscriptions = getSubscriptions(group)
+  // const results = await Promise.allSettled(
+  //   subscriptions.map(sub => sendNotification(sub, text))
+  // )
   return { sent: results.filter(r => r.status === 'fulfilled').length }
 })

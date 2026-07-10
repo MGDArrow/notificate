@@ -1,5 +1,9 @@
+// server/utils/prisma.ts
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '@prisma/client'
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const { PrismaClient } = require('@prisma/client');
 
 const prismaClientSingleton = () => {
   const pool = new PrismaPg({ connectionString: process.env.DATABASE_URL! });

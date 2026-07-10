@@ -1,11 +1,15 @@
-import { createGroup } from '../../utils/db'
+import { z } from 'zod'
+
+const bodySchema = z.object({
+  name: z.string().min(1, 'Название обязательно').max(100)
+})
 
 export default defineEventHandler(async (event) => {
-  const { name } = await readBody(event)
-  if (!name || typeof name !== 'string' || name.trim() === '') {
-    throw createError({ status: 400, message: 'Название группы обязательно' })
-  }
-  const group = await createGroup(name.trim())
+  const userId = await requireAuth(event)
+  const { name } = await readValidatedBody(event, bodySchema.parse)
+
+  const group = await createGroup(name.trim(), userId)
+
   return {
     groupName: group.name,
     publicKey: group.publicKey,

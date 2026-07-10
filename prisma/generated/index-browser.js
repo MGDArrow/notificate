@@ -120,11 +120,19 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
   Serializable: 'Serializable'
 });
 
+exports.Prisma.UserScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  passwordHash: 'passwordHash',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.GroupScalarFieldEnum = {
   id: 'id',
   name: 'name',
   publicKey: 'publicKey',
   secretKey: 'secretKey',
+  userId: 'userId',
   createdAt: 'createdAt'
 };
 
@@ -133,6 +141,7 @@ exports.Prisma.SubscriptionScalarFieldEnum = {
   endpoint: 'endpoint',
   keys: 'keys',
   groupId: 'groupId',
+  userId: 'userId',
   createdAt: 'createdAt'
 };
 
@@ -165,6 +174,7 @@ exports.Prisma.JsonNullValueFilter = {
 
 
 exports.Prisma.ModelName = {
+  User: 'User',
   Group: 'Group',
   Subscription: 'Subscription',
   Message: 'Message'

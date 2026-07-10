@@ -10,17 +10,22 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@pinia/nuxt": "^0.11.3",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@vite-pwa/nuxt": "^1.1.1",
     "dotenv": "^17.4.2",
+    "jsonwebtoken": "^9.0.3",
     "nuxt": "^4.4.8",
     "pg": "^8.22.0",
+    "pinia": "^3.0.4",
     "vue": "^3.5.39",
     "vue-router": "^5.1.0",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/pg": "^8.20.0",
     "@types/web-push": "^3.6.4",
     "prisma": "^7.8.0"

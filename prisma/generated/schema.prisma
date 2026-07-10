@@ -7,11 +7,22 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id            Int            @id @default(autoincrement())
+  email         String         @unique
+  passwordHash  String // хеш пароля (bcrypt или scrypt)
+  createdAt     DateTime       @default(now())
+  groups        Group[] // созданные группы
+  subscriptions Subscription[] // подписки пользователя
+}
+
 model Group {
   id            Int            @id @default(autoincrement())
   name          String
   publicKey     String         @unique
   secretKey     String         @unique
+  userId        Int // автор группы
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   subscriptions Subscription[]
   messages      Message[]
   createdAt     DateTime       @default(now())
@@ -23,6 +34,8 @@ model Subscription {
   keys      Json
   groupId   Int
   group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId    Int // владелец подписки
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 }
 

@@ -9,7 +9,7 @@ self.addEventListener('push', (event) => {
   }
   const options = {
     body: data.body || 'У вас новое уведомление',
-    icon: '/icon-192.png',
+    icon: '/web-app-manifest-192x192.png',
     data: { group: data.group || '' },
     vibrate: [100, 50, 100],
   }
@@ -28,6 +28,6 @@ self.addEventListener('notificationclick', (event) => {
         if (client.url.includes(url) && 'focus' in client) return client.focus()
       }
       if (clients.openWindow) return clients.openWindow(url)
-      })
+    })
   )
 })

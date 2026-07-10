@@ -1,12 +1,11 @@
-
+// server/api/subscriptions.get.ts
 export default defineEventHandler(async (event) => {
   const userId = await requireAuth(event)
-  const subs = await getUserSubscriptions(userId)
-  return subs.map(s => ({
-    id: s.id,
-    groupName: s.group.name,
-    groupId: s.groupId,
-    endpoint: s.endpoint,
-    createdAt: s.createdAt
+  const groups = await getUserSubscriptions(userId) 
+  return groups.map(g => ({
+    id: g.id, 
+    groupId: g.id,
+    groupName: g.name,
+    createdAt: g.createdAt
   }))
 })

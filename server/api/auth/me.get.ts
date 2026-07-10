@@ -1,6 +1,3 @@
-import { getUserIdFromEvent } from '../../utils/auth'
-import { findUserById } from '../../utils/db'
-
 export default defineEventHandler(async (event) => {
   const userId = getUserIdFromEvent(event)
   if (!userId) {

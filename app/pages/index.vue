@@ -96,7 +96,6 @@
 import { useAuthStore } from '~~/stores/auth'
 import { useSubscriptions } from '~/composables/useSubscriptions'
 import { useMyGroups } from '~/composables/useMyGroups'
-import SubscribeForm from '~/components/SubscribeForm.vue'
 
 // Авторизация
 const auth = useAuthStore()

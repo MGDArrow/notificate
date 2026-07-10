@@ -1,16 +1,13 @@
 <template>
-  <form @submit.prevent="handleSubscribe">
-    <input
+  <form @submit.prevent="handleSubscribe" class="subscribe-form">
+    <UiInput
       v-model="key"
-      :disabled="isLoading"
       placeholder="Введите публичный ключ группы"
-      maxlength="100"
+      :disabled="isLoading"
+      :error="errorMessage"
     />
-    <button type="submit" :disabled="isLoading">
-      {{ isLoading ? 'Подписка...' : 'Подписаться' }}
-    </button>
-    <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
-    <p v-if="successMessage" class="success">{{ successMessage }}</p>
+    <UiButton type="submit" :loading="isLoading">Подписаться</UiButton>
+    <p v-if="successMessage" class="subscribe-form__success">{{ successMessage }}</p>
   </form>
 </template>
 
@@ -53,47 +50,22 @@ async function handleSubscribe() {
 </script>
 
 <style scoped lang="scss">
-form {
+.subscribe-form {
   display: flex;
-  gap: var(--space-3);
   flex-wrap: wrap;
-  margin: var(--space-3) 0;
+  gap: var(--space-3);
+  align-items: flex-start;
 
-  input {
+  .ui-input {
     flex: 1;
     min-width: 200px;
-    padding: var(--space-2) var(--space-3);
-    border: 1px solid var(--color-border-default);
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-md);
-    &:disabled {
-      opacity: 0.6;
-    }
   }
 
-  button {
-    padding: var(--space-2) var(--space-4);
-    background: var(--color-primary-500);
-    color: white;
-    border: none;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    &:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
+  &__success {
+    width: 100%;
+    color: var(--color-success-500);
+    font-size: var(--font-size-sm);
+    margin-top: var(--space-1);
   }
-}
-
-.error {
-  color: var(--color-error-500);
-  margin-top: var(--space-2);
-  font-size: var(--font-size-sm);
-}
-
-.success {
-  color: var(--color-success-500);
-  margin-top: var(--space-2);
-  font-size: var(--font-size-sm);
 }
 </style>

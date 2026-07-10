@@ -26,8 +26,11 @@ export default defineNuxtConfig({
       link: [
         { rel: 'icon', type: 'image/png', href: '/favicon-96x96.png', sizes: '96x96' },
         { rel: 'shortcut icon', href: '/favicon.ico' },
-        { rel: 'apple-touch-icon',  href: '/apple-touch-icon.png', sizes: '180x180' },
+        { rel: 'apple-touch-icon', href: '/apple-touch-icon.png', sizes: '180x180' },
         { rel: 'manifest', href: '/manifest.json' },
+        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+        { href: 'https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,100..900;1,100..900&display=swap', rel: 'stylesheet' },
       ],
     },
   },
@@ -44,4 +47,8 @@ export default defineNuxtConfig({
     },
   },
   modules: ['@pinia/nuxt'],
+  css: [
+    '~/assets/variables.css',
+    '~/assets/styles/global.scss'
+  ],
 })

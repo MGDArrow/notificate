@@ -1,0 +1,154 @@
+:root {
+   /* ─── Цвета: бренд ─────────────────────────────────── */
+  --color-primary-100: #e8f0fe;
+  --color-primary-300: #7aa7f7;
+  --color-primary-500: #1a73e8;
+  --color-primary-700: #1557b0;
+  --color-primary-900: #0d3b7a;
+  --color-primary-100: #e6f4ea;      /* светло-зелёный */
+  --color-primary-300: #7abf8a;
+  --color-primary-500: #0a6c2f;      /* основной акцент */
+  --color-primary-700: #085222;
+  --color-primary-900: #043816;
+
+  --color-secondary-100: #fce8f3;
+  --color-secondary-500: #d81b60;
+  --color-secondary-700: #a0145a;
+  --color-secondary-100: #fef9e7;
+  --color-secondary-500: #e2bd64;    /* жёлтый для границ и акцентов */
+  --color-secondary-700: #c9a84a;
+
+  /* ─── Цвета: нейтральные ───────────────────────────── */
+  --color-neutral-0:   #ffffff;
+  --color-neutral-50:  #f8f9fa;
+  --color-neutral-100: #f1f3f4;
+  --color-neutral-200: #e8eaed;
+  --color-neutral-300: #dadce0;
+  --color-neutral-400: #bdc1c6;
+  --color-neutral-500: #9aa0a6;
+  --color-neutral-600: #80868b;
+  --color-neutral-700: #5f6368;
+  --color-neutral-800: #3c4043;
+  --color-neutral-900: #202124;
+  --color-neutral-1000: #000000;
+
+  /* ─── Цвета: семантические ──────────────────────────── */
+  --color-success-100: #e6f4ea;
+  --color-success-500: #1e8e3e;
+  --color-success-700: #137333;
+
+  --color-warning-100: #fef7e0;
+  --color-warning-500: #f9ab00;
+  --color-warning-700: #e37400;
+
+  --color-error-100:   #fce8e6;
+  --color-error-500:   #d93025;
+  --color-error-700:   #b31412;
+
+  --color-info-100:    #e8f0fe;
+  --color-info-500:    #1a73e8;
+
+  /* ─── Цвета: фон / поверхности ──────────────────────── */
+  --color-bg-base:      var(--color-neutral-0);
+  --color-bg-subtle:    var(--color-neutral-50);
+  --color-bg-muted:     var(--color-neutral-100);
+  --color-bg-inverse:   var(--color-neutral-900);
+
+  /* ─── Цвета: текст ──────────────────────────────────── */
+  --color-text-primary:   var(--color-neutral-900);
+  --color-text-secondary: var(--color-neutral-700);
+  --color-text-muted:     var(--color-neutral-500);
+  --color-text-disabled:  var(--color-neutral-400);
+  --color-text-inverse:   var(--color-neutral-0);
+  --color-text-link:      var(--color-primary-500);
+  --color-text-link-hover: var(--color-primary-700);
+
+   /* ─── Цвета: границы ────────────────────────────────── */
+  --color-border-default: var(--color-neutral-300);
+  --color-border-strong:  var(--color-neutral-500);
+  --color-border-default: var(--color-secondary-500);
+ --color-border-strong:  var(--color-secondary-700);
+   --color-border-focus:   var(--color-primary-500);
+   --color-border-error:   var(--color-error-500);
+
+  /* ─── Отступы (шаг = 4px) ───────────────────────────── */
+  --space-0:   0px;
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-5:   20px;
+  --space-6:   24px;
+  --space-8:   32px;
+  --space-10:  40px;
+  --space-12:  48px;
+  --space-16:  64px;
+  --space-20:  80px;
+  --space-24:  96px;
+  --space-32:  128px;
+
+  /* ─── Типографика: размеры ──────────────────────────── */
+  --font-size-xs:   11px;
+  --font-size-sm:   13px;
+  --font-size-md:   15px;
+  --font-size-lg:   17px;
+  --font-size-xl:   20px;
+  --font-size-2xl:  24px;
+  --font-size-3xl:  30px;
+  --font-size-4xl:  36px;
+  --font-size-5xl:  48px;
+
+  /* ─── Типографика: насыщенность ─────────────────────── */
+  --font-weight-regular:   400;
+  --font-weight-medium:    500;
+  --font-weight-semibold:  600;
+  --font-weight-bold:      700;
+
+  /* ─── Типографика: межстрочный интервал ─────────────── */
+  --font-line-tight:    1.2;
+  --font-line-snug:     1.35;
+  --font-line-normal:   1.5;
+  --font-line-relaxed:  1.7;
+
+  /* ─── Типографика: семейства ────────────────────────── */
+  --font-family-base:  'Noto Serif', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-family-mono:  'JetBrains Mono', 'Cascadia Code', monospace;
+
+  /* ─── Скругления ────────────────────────────────────── */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-2xl:  24px;
+  --radius-full: 9999px;
+
+  /* ─── Тени ───────────────────────────────────────────── */
+  --shadow-xs:  0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm:  0 1px 4px rgba(0, 0, 0, 0.08);
+  --shadow-md:  0 4px 12px rgba(0, 0, 0, 0.10);
+  --shadow-lg:  0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-xl:  0 16px 40px rgba(0, 0, 0, 0.14);
+
+  /* ─── Z-index ─────────────────────────────────────────── */
+  --z-below:    -1;
+  --z-base:      0;
+  --z-raised:   10;
+  --z-dropdown: 100;
+  --z-sticky:   200;
+  --z-overlay:  300;
+  --z-modal:    400;
+  --z-toast:    500;
+  --z-tooltip:  600;
+
+  /* ─── Переходы ───────────────────────────────────────── */
+  --transition-fast:    150ms ease;
+  --transition-base:    250ms ease;
+  --transition-slow:    400ms ease;
+  --transition-spring:  300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ─── Контейнеры ─────────────────────────────────────── */
+  --container-sm:   640px;
+  --container-md:   768px;
+  --container-lg:   1200px;
+  --container-xl:   1600px;
+}

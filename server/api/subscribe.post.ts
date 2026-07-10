@@ -1,4 +1,3 @@
-
 import { z } from 'zod'
 
 const bodySchema = z.object({
@@ -13,7 +12,8 @@ const bodySchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const userId = await requireAuth(event)
+  // Пытаемся получить userId, но не требуем авторизации
+  const userId = getUserIdFromEvent(event) // может быть null
   const { key, subscription } = await readValidatedBody(event, bodySchema.parse)
 
   const group = await getGroupByPublicKey(key)
@@ -23,7 +23,10 @@ export default defineEventHandler(async (event) => {
 
   await addSubscription(group.id, subscription, userId)
 
-  await sendNotification(subscription, group.name, `Вы подписаны на группу ${group.name}`)
+  // Отправляем приветственное уведомление, если userId не null (пользователь авторизован)
+  if (userId) {
+    await sendNotification(subscription, group.name, `Вы подписаны на группу ${group.name}`)
+  }
 
   return { success: true, group: group.name }
 })

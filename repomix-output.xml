@@ -1287,57 +1287,6 @@ useSeoMeta({
 </style>
 </file>
 
-<file path="prisma/schema.prisma">
-generator client {
-  provider = "prisma-client-js"
-  output   = "./generated"
-}
-
-datasource db {
-  provider = "postgresql"
-}
-
-model User {
-  id            Int            @id @default(autoincrement())
-  email         String         @unique
-  passwordHash  String // хеш пароля (bcrypt или scrypt)
-  createdAt     DateTime       @default(now())
-  groups        Group[] // созданные группы
-  subscriptions Subscription[] // подписки пользователя
-}
-
-model Group {
-  id            Int            @id @default(autoincrement())
-  name          String
-  publicKey     String         @unique
-  secretKey     String         @unique
-  userId        Int // автор группы
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subscriptions Subscription[]
-  messages      Message[]
-  createdAt     DateTime       @default(now())
-}
-
-model Subscription {
-  id        Int      @id @default(autoincrement())
-  endpoint  String   @unique
-  keys      Json
-  groupId   Int
-  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  userId    Int // владелец подписки
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-}
-
-model Message {
-  id        Int      @id @default(autoincrement())
-  text      String
-  timestamp DateTime @default(now())
-  groupId   Int
-  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
-}
-</file>
-
 <file path="public/manifest.json">
 {
   "name": "Notificate",
@@ -1485,6 +1434,56 @@ onMounted(() => {
   }
 }
 </style>
+</file>
+
+<file path="prisma/schema.prisma">
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  email         String         @unique
+  passwordHash  String // хеш пароля (bcrypt или scrypt)
+  createdAt     DateTime       @default(now())
+  groups        Group[] // созданные группы
+  subscriptions Subscription[] // подписки пользователя
+}
+
+model Group {
+  id            Int            @id @default(autoincrement())
+  name          String
+  publicKey     String         @unique
+  secretKey     String         @unique
+  userId        Int // автор группы
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptions Subscription[]
+  messages      Message[]
+  createdAt     DateTime       @default(now())
+}
+
+model Subscription {
+  id        Int      @id @default(autoincrement())
+  endpoint  String   @unique
+  keys      Json
+  groupId   Int
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId    Int // владелец подписки
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  text      String
+  timestamp DateTime @default(now())
+  groupId   Int
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+}
 </file>
 
 <file path="server/api/auth/me.get.ts">
@@ -1769,42 +1768,6 @@ async function handleSubscribe() {
   }
 }
 </style>
-</file>
-
-<file path="Dockerfile">
-FROM node:20-alpine as builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-
-FROM node:20-alpine
-WORKDIR /app
-COPY --from=builder /app/.output ./.output
-EXPOSE 3000
-CMD ["node", ".output/server/index.mjs"]
-</file>
-
-<file path="server/utils/prisma.ts">
-import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '../../prisma/generated/client';
-
-const prismaClientSingleton = () => {
-  const pool = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
-  return new PrismaClient({ adapter: pool });
-};
-
-type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>;
-
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClientSingleton | undefined;
-};
-const prisma = globalForPrisma.prisma ?? prismaClientSingleton();
-
-export default prisma;
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 </file>
 
 <file path="server/utils/push.ts">
@@ -2260,6 +2223,22 @@ useSeoMeta({
 </style>
 </file>
 
+<file path="Dockerfile">
+FROM node:20-alpine as builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npx prisma generate
+RUN npm run build
+
+FROM node:20-alpine
+WORKDIR /app
+COPY --from=builder /app/.output ./.output
+EXPOSE 3000
+CMD ["node", ".output/server/index.mjs"]
+</file>
+
 <file path="server/api/notify.post.ts">
 import { getGroupByName, getSubscriptions, addMessage } from '../utils/db'
 import { sendNotification } from '../utils/push'
@@ -2290,6 +2269,28 @@ export default defineEventHandler(async (event) => {
 
   return { sent: results.filter(r => r.status === 'fulfilled').length }
 })
+</file>
+
+<file path="server/utils/prisma.ts">
+import { PrismaPg } from '@prisma/adapter-pg';
+import pkg from '@prisma/client';
+const { PrismaClient } = pkg;
+
+const prismaClientSingleton = () => {
+  const pool = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+  return new PrismaClient({ adapter: pool });
+};
+
+type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>;
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClientSingleton | undefined;
+};
+const prisma = globalForPrisma.prisma ?? prismaClientSingleton();
+
+export default prisma;
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 </file>
 
 <file path="nuxt.config.ts">
@@ -2365,7 +2366,6 @@ export default defineNuxtConfig({
     "@pinia/nuxt": "^0.11.3",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
-    "@vite-pwa/nuxt": "^1.1.1",
     "dayjs": "^1.11.21",
     "jsonwebtoken": "^9.0.3",
     "nuxt": "^4.4.8",

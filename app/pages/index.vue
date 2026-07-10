@@ -2,26 +2,54 @@
   <div class="home">
     <h1 class="home__title">Notificate</h1>
 
-    <!-- Блок авторизации -->
-    <UiCard v-if="!auth.isAuthenticated" class="home__auth-card">
-      <h2>{{ isLoginMode ? 'Вход' : 'Регистрация' }}</h2>
-      <form @submit.prevent="handleAuth">
-        <UiInput v-model="authForm.email" type="email" label="Email" placeholder="example@mail.com" :error="authError"
-          autocomplete="email" />
-        <UiInput v-model="authForm.password" type="password" label="Пароль" placeholder="••••••••" :error="authError"
-          :autocomplete="isLoginMode ? 'current-password' : 'new-password'" />
-        <div class="home__auth-actions">
-          <UiButton type="submit" :loading="authLoading">
-            {{ isLoginMode ? 'Войти' : 'Зарегистрироваться' }}
-          </UiButton>
-          <UiButton variant="ghost" @click="toggleAuthMode" type="button" :disabled="authLoading">
-            {{ isLoginMode ? 'Нет аккаунта?' : 'Уже есть аккаунт?' }}
-          </UiButton>
+    <!-- Гостевая часть (не авторизован) -->
+    <template v-if="!auth.isAuthenticated">
+      <UiCard class="home__guest-card">
+        <h2>Гостевая подписка</h2>
+        <p class="home__guest-hint">
+          Подпишитесь на группу, чтобы получать уведомления. Ваши подписки сохранятся в браузере.
+          При регистрации они будут привязаны к аккаунту.
+        </p>
+        <SubscribeForm @subscribed="handleGuestSubscribed" />
+        <div v-if="subscriptions.localKeys.value.length" class="home__local-list">
+          <h4>Ваши локальные подписки:</h4>
+          <ul>
+            <li v-for="key in subscriptions.localKeys.value" :key="key" class="home__local-item">
+              <code>{{ key }}</code>
+              <UiButton variant="danger" size="sm" @click="removeLocalKey(key)">Удалить</UiButton>
+            </li>
+          </ul>
         </div>
-      </form>
-    </UiCard>
+      </UiCard>
 
-    <!-- Основной контент для авторизованных -->
+      <div class="home__auth-toggle">
+        <p>Уже есть аккаунт?</p>
+        <UiButton @click="showAuthForm = !showAuthForm">
+          {{ showAuthForm ? 'Скрыть форму' : 'Войти / Зарегистрироваться' }}
+        </UiButton>
+      </div>
+
+      <!-- Форма авторизации -->
+      <UiCard v-if="showAuthForm" class="home__auth-card">
+        <h2>{{ isLoginMode ? 'Вход' : 'Регистрация' }}</h2>
+        <form @submit.prevent="handleAuth">
+          <UiInput v-model="authForm.email" type="email" label="Email" placeholder="example@mail.com" :error="authError"
+            autocomplete="email" />
+          <UiInput v-model="authForm.password" type="password" label="Пароль" placeholder="••••••••" :error="authError"
+            :autocomplete="isLoginMode ? 'current-password' : 'new-password'" />
+          <div class="home__auth-actions">
+            <UiButton type="submit" :loading="authLoading">
+              {{ isLoginMode ? 'Войти' : 'Зарегистрироваться' }}
+            </UiButton>
+            <UiButton variant="ghost" @click="toggleAuthMode" type="button" :disabled="authLoading">
+              {{ isLoginMode ? 'Нет аккаунта?' : 'Уже есть аккаунт?' }}
+            </UiButton>
+          </div>
+        </form>
+      </UiCard>
+    </template>
+
+    <!-- Авторизованная часть -->
     <template v-else>
       <div class="home__user-bar">
         <span class="home__user-email">{{ auth.user?.email }}</span>
@@ -55,7 +83,7 @@
           </div>
           <UiButton variant="ghost" @click="createdGroup = null">Закрыть</UiButton>
         </div>
-        <p v-if="myGroups.error" class="home__error">{{ myGroups.error }}</p>
+        <p v-if="myGroups.error.value" class="home__error">{{ myGroups.error.value }}</p>
       </UiCard>
 
       <!-- Мои группы -->
@@ -63,9 +91,9 @@
         <h3>Мои группы</h3>
         <ul class="home__group-list">
           <li v-for="g in myGroups.groups.value" :key="g.id" class="home__group-item">
-      <NuxtLink :to="{ name: 'group-name', params: { name: g.name } }" class="home__group-link">
-      {{ g.name }}
-    </NuxtLink>
+            <NuxtLink :to="{ name: 'group-name', params: { name: g.name } }" class="home__group-link">
+              {{ g.name }}
+            </NuxtLink>
             <UiButton variant="ghost" size="sm" @click="toggleKeys(g.id)">
               {{ expandedGroupId === g.id ? 'Скрыть ключи' : 'Показать ключи' }}
             </UiButton>
@@ -95,9 +123,9 @@
         <SubscribeForm @subscribed="handleSubscribed" />
         <ul v-if="subscriptions.list.value.length" class="home__subscription-list">
           <li v-for="s in subscriptions.list.value" :key="s.id" class="home__subscription-item">
-      <NuxtLink :to="{ name: 'group-name', params: { name: s.groupName } }" class="home__subscription-link">
-      {{ s.groupName }}
-    </NuxtLink>
+            <NuxtLink :to="{ name: 'group-name', params: { name: s.groupName } }" class="home__subscription-link">
+              {{ s.groupName }}
+            </NuxtLink>
             <UiButton variant="danger" size="sm" @click="unsubscribe(s.groupName)"
               :loading="subscriptions.loading.value">
               Отписаться
@@ -105,7 +133,7 @@
           </li>
         </ul>
         <p v-else class="home__empty">Вы не подписаны ни на одну группу.</p>
-        <p v-if="subscriptions.error" class="home__error">{{ subscriptions.error }}</p>
+        <p v-if="subscriptions.error.value" class="home__error">{{ subscriptions.error.value }}</p>
       </div>
     </template>
   </div>
@@ -122,6 +150,7 @@ const authForm = ref({ email: '', password: '' })
 const isLoginMode = ref(true)
 const authLoading = ref(false)
 const authError = ref('')
+const showAuthForm = ref(false)
 
 // --- Композаблы ---
 const subscriptions = useSubscriptions()
@@ -155,11 +184,11 @@ async function handleAuth() {
     } else {
       await auth.register(authForm.value.email, authForm.value.password)
     }
-    await Promise.all([
-      subscriptions.fetchSubscriptions(),
-      myGroups.fetchMyGroups(),
-    ])
+    // После успешной авторизации переносим локальные подписки
+    await subscriptions.migrateLocalSubscriptions()
+    await myGroups.fetchMyGroups()
     authForm.value = { email: '', password: '' }
+    showAuthForm.value = false
   } catch (err: any) {
     authError.value = err.message || 'Ошибка авторизации'
   } finally {
@@ -176,6 +205,16 @@ async function logout() {
   await auth.logout()
   subscriptions.list.value = []
   myGroups.groups.value = []
+  // При выходе очищаем локальные подписки? Нет, оставляем как есть.
+}
+
+// --- Гостевая подписка ---
+function handleGuestSubscribed(groupName: string) {
+  // ничего не делаем, подписка уже добавлена в localStorage через useSubscriptions
+}
+
+function removeLocalKey(key: string) {
+  subscriptions.removeLocalKey(key)
 }
 
 // --- Создание группы ---
@@ -216,7 +255,7 @@ async function unsubscribe(groupName: string) {
   }
 }
 
-// --- Копирование в буфер обмена с уведомлением ---
+// --- Копирование в буфер обмена ---
 async function copyText(text: string) {
   try {
     await navigator.clipboard.writeText(text)
@@ -240,6 +279,59 @@ useSeoMeta({
     margin-bottom: var(--space-8);
     font-weight: var(--font-weight-bold);
     letter-spacing: -0.02em;
+  }
+
+  &__guest-card {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: var(--space-8);
+  }
+
+  &__guest-hint {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--space-4);
+  }
+
+  &__local-list {
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border-default);
+
+    h4 {
+      font-size: var(--font-size-md);
+      margin-bottom: var(--space-3);
+    }
+
+    ul {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+  }
+
+  &__local-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    background: var(--color-bg-subtle);
+    border-radius: var(--radius-sm);
+
+    code {
+      flex: 1;
+      font-size: var(--font-size-sm);
+      word-break: break-all;
+    }
+  }
+
+  &__auth-toggle {
+    text-align: center;
+    margin: var(--space-6) 0;
+    p {
+      margin-bottom: var(--space-2);
+      color: var(--color-text-secondary);
+    }
   }
 
   &__auth-card {
@@ -316,10 +408,10 @@ useSeoMeta({
 
   &__group-list,
   &__subscription-list {
-      display: flex;
-  flex-direction: column;
-  gap: var(--space-4);          /* было var(--space-3) */
-  padding: var(--space-2) 0; 
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-2) 0;
   }
 
   &__group-item,

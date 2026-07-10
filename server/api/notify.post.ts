@@ -1,4 +1,4 @@
-import { getGroupByName, getSubscriptions, addMessage } from '../utils/db'
+import { getSubscriptionsForGroup, addMessage } from '../utils/db'
 import { sendNotification } from '../utils/push'
 
 export default defineEventHandler(async (event) => {
@@ -8,8 +8,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ status: 400, message: 'Missing x-group or x-secret-key header' })
   }
 
-  // Проверяем группу по имени и секретному ключу
-  const { getGroupBySecretKey } = await import('../utils/db')
   const group = await getGroupBySecretKey(groupName, secretKey)
   if (!group) {
     throw createError({ status: 403, message: 'Invalid group or secret key' })
@@ -20,7 +18,8 @@ export default defineEventHandler(async (event) => {
 
   await addMessage(group.id, text)
 
-  const subscriptions = await getSubscriptions(group.id)
+  // Получаем все подписки для группы
+  const subscriptions = await getSubscriptionsForGroup(group.id)
   const results = await Promise.allSettled(
     subscriptions.map(sub => sendNotification(sub, group.name, text))
   )

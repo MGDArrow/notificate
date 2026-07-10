@@ -17,9 +17,17 @@ export interface Subscription {
   id: number
   endpoint: string
   keys: any
+  userId: number | null
+  groups: GroupSubscription[]
+  createdAt: string
+}
+
+export interface GroupSubscription {
+  id: number
   groupId: number
-  userId: number
+  subscriptionId: number
   group: Group
+  subscription: Subscription
   createdAt: string
 }
 

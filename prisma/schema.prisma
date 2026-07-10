@@ -9,33 +9,43 @@ datasource db {
 model User {
   id            Int            @id @default(autoincrement())
   email         String         @unique
-  passwordHash  String // хеш пароля (bcrypt или scrypt)
+  passwordHash  String
   createdAt     DateTime       @default(now())
-  groups        Group[] // созданные группы
-  subscriptions Subscription[] // подписки пользователя
+  groups        Group[]
+  subscriptions Subscription[]
 }
 
 model Group {
-  id            Int            @id @default(autoincrement())
+  id            Int                 @id @default(autoincrement())
   name          String
-  publicKey     String         @unique
-  secretKey     String         @unique
-  userId        Int // автор группы
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subscriptions Subscription[]
+  publicKey     String              @unique
+  secretKey     String              @unique
+  userId        Int
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptions GroupSubscription[]
   messages      Message[]
-  createdAt     DateTime       @default(now())
+  createdAt     DateTime            @default(now())
 }
 
 model Subscription {
-  id        Int      @id @default(autoincrement())
-  endpoint  String   @unique
+  id        Int                 @id @default(autoincrement())
+  endpoint  String              @unique
   keys      Json
-  groupId   Int
-  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  userId    Int // владелец подписки
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  userId    Int? // NULL для гостей
+  user      User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  groups    GroupSubscription[]
+  createdAt DateTime            @default(now())
+}
+
+model GroupSubscription {
+  id             Int          @id @default(autoincrement())
+  groupId        Int
+  group          Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  subscriptionId Int
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+
+  @@unique([groupId, subscriptionId])
 }
 
 model Message {

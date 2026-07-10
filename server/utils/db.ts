@@ -1,10 +1,8 @@
 import prisma from './prisma'
 import { randomBytes } from 'node:crypto'
 
-// Генерация случайного ключа (base64url)
 function generateKey(): string {
-  const buf = randomBytes(32)
-  return buf.toString('base64url')
+  return randomBytes(32).toString('base64url')
 }
 
 // ─── Пользователи ──────────────────────────────────────
@@ -24,95 +22,144 @@ export async function findUserById(id: number) {
 export async function createGroup(name: string, userId: number) {
   const publicKey = generateKey()
   const secretKey = generateKey()
-  return await prisma.group.create({
+  return prisma.group.create({
     data: { name, publicKey, secretKey, userId }
   })
 }
 
 export async function getGroupByPublicKey(publicKey: string) {
-  return await prisma.group.findUnique({ where: { publicKey } })
+  return prisma.group.findUnique({ where: { publicKey } })
 }
 
 export async function getGroupBySecretKey(groupName: string, secretKey: string) {
-  return await prisma.group.findFirst({
-    where: {
-      name: groupName,
-      secretKey: secretKey
-    }
+  return prisma.group.findFirst({
+    where: { name: groupName, secretKey }
   })
 }
 
 export async function getGroupByName(name: string) {
-  return await prisma.group.findFirst({ where: { name } })
+  return prisma.group.findFirst({ where: { name } })
 }
 
 export async function getGroupsByUserId(userId: number) {
-  return await prisma.group.findMany({
+  return prisma.group.findMany({
     where: { userId },
     orderBy: { createdAt: 'desc' }
   })
 }
 
 export async function getGroupById(id: number) {
-  return await prisma.group.findUnique({ where: { id } })
+  return prisma.group.findUnique({ where: { id } })
 }
 
 // ─── Подписки ──────────────────────────────────────────
-export async function getSubscriptions(groupId: number) {
-  return await prisma.subscription.findMany({
-    where: { groupId }
+export async function getSubscriptionsForGroup(groupId: number) {
+  // Возвращает все Subscription, связанные с группой через GroupSubscription
+  const groupSubs = await prisma.groupSubscription.findMany({
+    where: { groupId },
+    include: { subscription: true }
   })
+  return groupSubs.map(gs => gs.subscription)
 }
 
-export async function addSubscription(groupId: number, subscription: PushSubscription, userId: number) {
+export async function addSubscription(
+  groupId: number,
+  subscription: PushSubscription,
+  userId: number | null
+) {
   const { endpoint, keys } = subscription
-  const existing = await prisma.subscription.findUnique({ where: { endpoint } })
-  if (!existing) {
-    await prisma.subscription.create({
+
+  // Найти или создать Subscription по endpoint
+  let sub = await prisma.subscription.findUnique({ where: { endpoint } })
+  if (!sub) {
+    sub = await prisma.subscription.create({
       data: {
         endpoint,
         keys: keys as any,
-        groupId,
         userId
       }
     })
   } else {
-    // Если подписка уже существует, но принадлежит другому пользователю – обновляем владельца
-    if (existing.userId !== userId) {
-      await prisma.subscription.update({
-        where: { id: existing.id },
+    // Если подписка уже существует, обновляем userId (если передан и был null)
+    if (userId && sub.userId === null) {
+      sub = await prisma.subscription.update({
+        where: { id: sub.id },
         data: { userId }
       })
     }
   }
-}
 
-export async function removeSubscription(endpoint: string, userId: number) {
-  await prisma.subscription.deleteMany({
+  // Создать связь с группой, если её нет
+  const existing = await prisma.groupSubscription.findUnique({
     where: {
-      endpoint,
-      userId
+      groupId_subscriptionId: {
+        groupId,
+        subscriptionId: sub.id
+      }
     }
   })
+  if (!existing) {
+    await prisma.groupSubscription.create({
+      data: {
+        groupId,
+        subscriptionId: sub.id
+      }
+    })
+  }
+}
+
+export async function removeSubscription(endpoint: string, groupId: number, userId: number | null) {
+  // Найти Subscription
+  const sub = await prisma.subscription.findUnique({ where: { endpoint } })
+  if (!sub) return
+
+  // Если передан userId, проверяем, что подписка принадлежит этому пользователю (или null)
+  if (userId !== null && sub.userId !== userId) {
+    throw new Error('Подписка не принадлежит пользователю')
+  }
+
+  // Удалить связь с группой
+  await prisma.groupSubscription.deleteMany({
+    where: {
+      subscriptionId: sub.id,
+      groupId
+    }
+  })
+
+  // Если после удаления у подписки не осталось связей, удаляем саму подписку
+  const remaining = await prisma.groupSubscription.count({
+    where: { subscriptionId: sub.id }
+  })
+  if (remaining === 0) {
+    await prisma.subscription.delete({ where: { id: sub.id } })
+  }
 }
 
 export async function getUserSubscriptions(userId: number) {
-  return await prisma.subscription.findMany({
+  // Возвращает все группы, на которые подписан пользователь (через его подписки)
+  const subs = await prisma.subscription.findMany({
     where: { userId },
-    include: { group: true }
+    include: {
+      groups: {
+        include: { group: true }
+      }
+    }
   })
+  // Извлекаем группы из связей
+  const groups = subs.flatMap(s => s.groups.map(gs => gs.group))
+  return groups
 }
 
 // ─── Сообщения ──────────────────────────────────────────
 export async function getMessages(groupId: number) {
-  return await prisma.message.findMany({
+  return prisma.message.findMany({
     where: { groupId },
     orderBy: { timestamp: 'asc' }
   })
 }
 
 export async function addMessage(groupId: number, text: string) {
-  return await prisma.message.create({
+  return prisma.message.create({
     data: { text, groupId }
   })
 }

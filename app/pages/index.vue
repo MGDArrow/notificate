@@ -64,58 +64,108 @@
           <UiButton type="submit" :loading="myGroups.loading.value">Создать</UiButton>
         </form>
         <div v-if="createdGroup" class="home__created-info">
-          <p>Группа «<strong>{{ createdGroup.groupName }}</strong>» создана!</p>
-          <div class="home__keys">
-            <p>
-              <span class="home__keys-label">Публичный ключ:</span>
-              <code>{{ createdGroup.publicKey }}</code>
-              <UiButton variant="ghost" size="sm" @click="copyText(createdGroup.publicKey)">
-                Копировать
-              </UiButton>
-            </p>
-            <p>
-              <span class="home__keys-label">Секретный ключ:</span>
-              <code>{{ createdGroup.secretKey }}</code>
-              <UiButton variant="ghost" size="sm" @click="copyText(createdGroup.secretKey)">
-                Копировать
-              </UiButton>
-            </p>
-          </div>
-          <UiButton variant="ghost" @click="createdGroup = null">Закрыть</UiButton>
-        </div>
+  <p>Группа «<strong>{{ createdGroup.groupName }}</strong>» создана!</p>
+  <div class="home__keys">
+    <p>
+      <span class="home__keys-label">Публичный ключ:</span>
+      <code>{{ createdGroup.publicKey }}</code>
+      <UiButton
+        variant="ghost"
+        size="sm"
+        @click="copyKey(createdGroup.publicKey)"
+        class="home__key-copy"
+        title="Копировать"
+      >
+        📋
+      </UiButton>
+    </p>
+    <p>
+      <span class="home__keys-label">Секретный ключ:</span>
+      <code>{{ createdGroup.secretKey }}</code>
+      <UiButton
+        variant="ghost"
+        size="sm"
+        @click="copyKey(createdGroup.secretKey)"
+        class="home__key-copy"
+        title="Копировать"
+      >
+        📋
+      </UiButton>
+    </p>
+  </div>
+  <UiButton variant="ghost" @click="createdGroup = null">Закрыть</UiButton>
+</div>
         <p v-if="myGroups.error.value" class="home__error">{{ myGroups.error.value }}</p>
       </UiCard>
 
       <!-- Мои группы -->
-      <div v-if="myGroups.groups.value.length" class="home__section">
-        <h3>Мои группы</h3>
-        <ul class="home__group-list">
-          <li v-for="g in myGroups.groups.value" :key="g.id" class="home__group-item">
-            <NuxtLink :to="{ name: 'group-name', params: { name: g.name } }" class="home__group-link">
-              {{ g.name }}
-            </NuxtLink>
-            <UiButton variant="ghost" size="sm" @click="toggleKeys(g.id)">
-              {{ expandedGroupId === g.id ? 'Скрыть ключи' : 'Показать ключи' }}
-            </UiButton>
-            <div v-if="expandedGroupId === g.id" class="home__keys">
-              <p>
-                <span class="home__keys-label">Public:</span>
-                <code>{{ g.publicKey }}</code>
-                <UiButton variant="ghost" size="sm" @click="copyText(g.publicKey)">
-                  Копировать
-                </UiButton>
-              </p>
-              <p>
-                <span class="home__keys-label">Secret:</span>
-                <code>{{ g.secretKey }}</code>
-                <UiButton variant="ghost" size="sm" @click="copyText(g.secretKey)">
-                  Копировать
-                </UiButton>
-              </p>
-            </div>
-          </li>
-        </ul>
+<div v-if="myGroups.groups.value.length" class="home__section">
+  <h3>Мои группы</h3>
+  <ul class="home__group-list">
+    <li v-for="g in myGroups.groups.value" :key="g.id" class="home__group-item">
+      <span class="home__group-name">{{ g.name }}</span>
+      <div class="home__group-actions">
+        <UiButton
+          variant="ghost"
+          size="sm"
+          @click="toggleKeys(g.id)"
+          class="home__group-action"
+          title="Показать ключи"
+        >
+          👁️
+        </UiButton>
+        <UiButton
+          variant="ghost"
+          size="sm"
+          @click="refreshKeys(g.id)"
+          class="home__group-action"
+          :loading="refreshingKeys[g.id]"
+          title="Обновить ключи"
+        >
+          🔄
+        </UiButton>
+        <UiButton
+          variant="danger"
+          size="sm"
+          @click="deleteGroup(g.id)"
+          class="home__group-action"
+          :loading="deletingGroup[g.id]"
+          title="Удалить группу"
+        >
+          🗑️
+        </UiButton>
       </div>
+      <div v-if="expandedGroupId === g.id" class="home__keys">
+        <p>
+          <span class="home__keys-label">Public:</span>
+          <code>{{ g.publicKey }}</code>
+          <UiButton
+            variant="ghost"
+            size="sm"
+            @click="copyKey(g.publicKey)"
+            class="home__key-copy"
+            title="Копировать"
+          >
+            📋
+          </UiButton>
+        </p>
+        <p>
+          <span class="home__keys-label">Secret:</span>
+          <code>{{ g.secretKey }}</code>
+          <UiButton
+            variant="ghost"
+            size="sm"
+            @click="copyKey(g.secretKey)"
+            class="home__key-copy"
+            title="Копировать"
+          >
+            📋
+          </UiButton>
+        </p>
+      </div>
+    </li>
+  </ul>
+</div>
 
       <!-- Подписки -->
       <div class="home__section">
@@ -143,6 +193,7 @@
 import { useAuthStore } from '~~/stores/auth'
 import { useSubscriptions } from '~/composables/useSubscriptions'
 import { useMyGroups } from '~/composables/useMyGroups'
+import { useToast } from '~/composables/useToast'
 
 // --- Состояние авторизации ---
 const auth = useAuthStore()
@@ -257,14 +308,53 @@ async function unsubscribe(groupName: string) {
   }
 }
 
-// --- Копирование в буфер обмена ---
-async function copyText(text: string) {
+const toast = useToast()
+
+// Состояния для загрузки
+const refreshingKeys = ref<Record<number, boolean>>({})
+const deletingGroup = ref<Record<number, boolean>>({})
+
+// Обновление ключей
+async function refreshKeys(groupId: number) {
+  refreshingKeys.value[groupId] = true
   try {
-    await navigator.clipboard.writeText(text)
-    alert('Скопировано!')
-  } catch {
-    alert('Не удалось скопировать')
+    const result = await $fetch<{ publicKey: string; secretKey: string }>(
+      `/api/group/${groupId}/refresh-keys`,
+      { method: 'POST' }
+    )
+    const group = myGroups.groups.value.find(g => g.id === groupId)
+    if (group) {
+      group.publicKey = result.publicKey
+      group.secretKey = result.secretKey
+    }
+    toast.show('Ключи обновлены', 'success')
+  } catch (err: any) {
+    toast.show(err.message || 'Ошибка обновления ключей', 'error')
+  } finally {
+    delete refreshingKeys.value[groupId]
   }
+}
+
+// Удаление группы
+async function deleteGroup(groupId: number) {
+  if (!confirm('Вы уверены, что хотите удалить группу? Это действие необратимо.')) return
+  deletingGroup.value[groupId] = true
+  try {
+    await $fetch(`/api/group/${groupId}`, { method: 'DELETE' })
+    myGroups.groups.value = myGroups.groups.value.filter(g => g.id !== groupId)
+    toast.show('Группа удалена', 'success')
+  } catch (err: any) {
+    toast.show(err.message || 'Ошибка удаления группы', 'error')
+  } finally {
+    delete deletingGroup.value[groupId]
+  }
+}
+
+// Копирование ключа с уведомлением
+function copyKey(text: string) {
+  navigator.clipboard.writeText(text)
+    .then(() => toast.show('Скопировано!', 'success'))
+    .catch(() => toast.show('Не удалось скопировать', 'error'))
 }
 
 // --- SEO ---
@@ -431,6 +521,62 @@ useSeoMeta({
     &:hover {
       border-color: var(--color-border-strong);
       box-shadow: var(--shadow-xs);
+    }
+  }
+
+  &__group-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    background: var(--color-bg-subtle);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border-default);
+    flex-wrap: wrap;
+
+    .home__group-name {
+      font-weight: var(--font-weight-medium);
+      flex: 1;
+    }
+
+    .home__group-actions {
+      display: flex;
+      gap: var(--space-2);
+      align-items: center;
+    }
+
+    .home__group-action {
+      min-width: 32px;
+      height: 32px;
+      padding: 0;
+      font-size: var(--font-size-md);
+      line-height: 1;
+      border-radius: var(--radius-full);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: background var(--transition-fast);
+
+      &:hover {
+        background: var(--color-bg-muted);
+      }
+    }
+
+    .home__key-copy {
+      min-width: 28px;
+      height: 28px;
+      padding: 0;
+      font-size: var(--font-size-sm);
+      line-height: 1;
+      border-radius: var(--radius-full);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: background var(--transition-fast);
+
+      &:hover {
+        background: var(--color-bg-muted);
+      }
     }
   }
 

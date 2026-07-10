@@ -13,11 +13,11 @@
         <p>&copy; {{ new Date().getFullYear() }} Notificate</p>
       </footer>
     </UiContainer>
+    <UiToast />
   </div>
 </template>
 
 <script setup lang="ts">
-// Регистрация Service Worker
 onMounted(() => {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js')

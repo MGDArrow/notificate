@@ -154,18 +154,17 @@ export async function removeSubscription(endpoint: string, groupId: number, user
 }
 
 export async function getUserSubscriptions(userId: number) {
-  // Возвращает все группы, на которые подписан пользователь (через его подписки)
-  const subs = await prisma.subscription.findMany({
-    where: { userId },
-    include: {
-      groups: {
-        include: { group: true }
+  // Возвращаем уникальные группы, на которые подписан пользователь
+  return prisma.group.findMany({
+    where: {
+      subscriptions: {
+        some: {
+          subscription: { userId }
+        }
       }
-    }
+    },
+    orderBy: { createdAt: 'desc' }
   })
-  // Извлекаем группы из связей
-  const groups = subs.flatMap(s => s.groups.map(gs => gs.group))
-  return groups
 }
 
 // ─── Сообщения ──────────────────────────────────────────
@@ -180,4 +179,17 @@ export async function addMessage(groupId: number, text: string) {
   return prisma.message.create({
     data: { text, groupId }
   })
+}
+
+export async function refreshGroupKeys(groupId: number) {
+  const publicKey = generateKey()
+  const secretKey = generateKey()
+  return prisma.group.update({
+    where: { id: groupId },
+    data: { publicKey, secretKey }
+  })
+}
+
+export async function deleteGroup(groupId: number) {
+  return prisma.group.delete({ where: { id: groupId } })
 }

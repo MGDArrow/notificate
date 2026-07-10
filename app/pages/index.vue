@@ -1,231 +1,115 @@
 <template>
   <div class="home">
-    <h1 class="home__title">Notificate</h1>
+    <header class="home__header">
+      <button class="home__menu-btn" @click="toggle" aria-label="Открыть меню">
+        ☰
+      </button>
+      <NuxtLink to="/" class="home__logo">
+        <img :src="logoPath" alt="Notificate" width="200" height="auto" />
+      </NuxtLink>
+    </header>
 
-    <!-- Гостевая часть (не авторизован) -->
-    <template v-if="!auth.isAuthenticated">
-      <UiCard class="home__guest-card">
-        <h2>Гостевая подписка</h2>
-        <p class="home__guest-hint">
-          Подпишитесь на группу, чтобы получать уведомления. Ваши подписки сохранятся в браузере.
-          При регистрации они будут привязаны к аккаунту.
-        </p>
-        <SubscribeForm @subscribed="handleGuestSubscribed" />
-        <div v-if="subscriptions.localKeys.value.length" class="home__local-list">
-          <h4>Ваши локальные подписки:</h4>
-          <ul>
-            <li v-for="key in subscriptions.localKeys.value" :key="key" class="home__local-item">
-              <code>{{ key }}</code>
-              <UiButton variant="danger" size="sm" @click="removeLocalKey(key)">Удалить</UiButton>
-            </li>
-          </ul>
-        </div>
-      </UiCard>
+    <main class="home__main">
+      <h1 class="home__title">Notificate</h1>
 
-      <div class="home__auth-toggle">
-        <p>Уже есть аккаунт?</p>
-        <UiButton @click="showAuthForm = !showAuthForm">
-          {{ showAuthForm ? 'Скрыть форму' : 'Войти / Зарегистрироваться' }}
-        </UiButton>
-      </div>
+      <!-- Гостевая часть -->
+      <template v-if="!auth.isAuthenticated">
+        <UiCard class="home__guest-card">
+          <h2 class="home__guest-title">Гостевая подписка</h2>
+          <p class="home__guest-hint">
+            Подпишитесь на группу, чтобы получать уведомления. Ваши подписки сохранятся в браузере.
+            При регистрации они будут привязаны к аккаунту.
+          </p>
+          <SubscribeForm @subscribed="handleGuestSubscribed" />
 
-      <!-- Форма авторизации -->
-      <UiCard v-if="showAuthForm" class="home__auth-card">
-        <h2>{{ isLoginMode ? 'Вход' : 'Регистрация' }}</h2>
-        <form @submit.prevent="handleAuth">
-          <UiInput v-model="authForm.email" type="email" label="Email" placeholder="example@mail.com" :error="authError"
-            autocomplete="email" />
-          <UiInput v-model="authForm.password" type="password" label="Пароль" placeholder="••••••••" :error="authError"
-            :autocomplete="isLoginMode ? 'current-password' : 'new-password'" />
-          <div class="home__auth-actions">
-            <UiButton type="submit" :loading="authLoading">
-              {{ isLoginMode ? 'Войти' : 'Зарегистрироваться' }}
-            </UiButton>
-            <UiButton variant="ghost" @click="toggleAuthMode" type="button" :disabled="authLoading">
-              {{ isLoginMode ? 'Нет аккаунта?' : 'Уже есть аккаунт?' }}
-            </UiButton>
+          <div v-if="subscriptions.localKeys.value.length" class="home__local-list">
+            <h4>Ваши локальные подписки:</h4>
+            <ul>
+              <li v-for="key in subscriptions.localKeys.value" :key="key" class="home__local-item">
+                <code>{{ key }}</code>
+                <UiButton variant="danger" size="sm" @click="removeLocalKey(key)">
+                  Удалить
+                </UiButton>
+              </li>
+            </ul>
           </div>
-        </form>
-      </UiCard>
-    </template>
+        </UiCard>
 
-    <!-- Авторизованная часть -->
-    <template v-else>
-      <div class="home__user-bar">
-        <span class="home__user-email">{{ auth.user?.email }}</span>
-        <UiButton variant="ghost" @click="logout">Выйти</UiButton>
-      </div>
-
-      <!-- Создание группы -->
-      <UiCard class="home__create-group">
-        <h3>Создать группу</h3>
-        <form @submit.prevent="handleCreateGroup" class="home__create-form">
-          <UiInput v-model="newGroupName" placeholder="Название группы" :disabled="myGroups.loading.value" />
-          <UiButton type="submit" :loading="myGroups.loading.value">Создать</UiButton>
-        </form>
-        <div v-if="createdGroup" class="home__created-info">
-  <p>Группа «<strong>{{ createdGroup.groupName }}</strong>» создана!</p>
-  <div class="home__keys">
-    <p>
-      <span class="home__keys-label">Публичный ключ:</span>
-      <code>{{ createdGroup.publicKey }}</code>
-      <UiButton
-        variant="ghost"
-        size="sm"
-        @click="copyKey(createdGroup.publicKey)"
-        class="home__key-copy"
-        title="Копировать"
-      >
-        📋
-      </UiButton>
-    </p>
-    <p>
-      <span class="home__keys-label">Секретный ключ:</span>
-      <code>{{ createdGroup.secretKey }}</code>
-      <UiButton
-        variant="ghost"
-        size="sm"
-        @click="copyKey(createdGroup.secretKey)"
-        class="home__key-copy"
-        title="Копировать"
-      >
-        📋
-      </UiButton>
-    </p>
-  </div>
-  <UiButton variant="ghost" @click="createdGroup = null">Закрыть</UiButton>
-</div>
-        <p v-if="myGroups.error.value" class="home__error">{{ myGroups.error.value }}</p>
-      </UiCard>
-
-      <!-- Мои группы -->
-<div v-if="myGroups.groups.value.length" class="home__section">
-  <h3>Мои группы</h3>
-  <ul class="home__group-list">
-    <li v-for="g in myGroups.groups.value" :key="g.id" class="home__group-item">
-      <span class="home__group-name">{{ g.name }}</span>
-      <div class="home__group-actions">
-        <UiButton
-          variant="ghost"
-          size="sm"
-          @click="toggleKeys(g.id)"
-          class="home__group-action"
-          title="Показать ключи"
-        >
-          👁️
-        </UiButton>
-        <UiButton
-          variant="ghost"
-          size="sm"
-          @click="refreshKeys(g.id)"
-          class="home__group-action"
-          :loading="refreshingKeys[g.id]"
-          title="Обновить ключи"
-        >
-          🔄
-        </UiButton>
-        <UiButton
-          variant="danger"
-          size="sm"
-          @click="deleteGroup(g.id)"
-          class="home__group-action"
-          :loading="deletingGroup[g.id]"
-          title="Удалить группу"
-        >
-          🗑️
-        </UiButton>
-      </div>
-      <div v-if="expandedGroupId === g.id" class="home__keys">
-        <p>
-          <span class="home__keys-label">Public:</span>
-          <code>{{ g.publicKey }}</code>
-          <UiButton
-            variant="ghost"
-            size="sm"
-            @click="copyKey(g.publicKey)"
-            class="home__key-copy"
-            title="Копировать"
-          >
-            📋
+        <div class="home__auth-toggle">
+          <p>Уже есть аккаунт?</p>
+          <UiButton @click="showAuthForm = !showAuthForm">
+            {{ showAuthForm ? 'Скрыть форму' : 'Войти / Зарегистрироваться' }}
           </UiButton>
-        </p>
-        <p>
-          <span class="home__keys-label">Secret:</span>
-          <code>{{ g.secretKey }}</code>
-          <UiButton
-            variant="ghost"
-            size="sm"
-            @click="copyKey(g.secretKey)"
-            class="home__key-copy"
-            title="Копировать"
-          >
-            📋
-          </UiButton>
-        </p>
-      </div>
-    </li>
-  </ul>
-</div>
+        </div>
 
-      <!-- Подписки -->
-      <div class="home__section">
-        <h3>Мои подписки</h3>
-        <SubscribeForm @subscribed="handleSubscribed" />
-        <ul v-if="subscriptions.list.value.length" class="home__subscription-list">
-          <li v-for="s in subscriptions.list.value" :key="s.id" class="home__subscription-item">
-            <NuxtLink :to="{ name: 'group-name', params: { name: s.groupName } }" class="home__subscription-link">
-              {{ s.groupName }}
-            </NuxtLink>
-            <UiButton variant="danger" size="sm" @click="unsubscribe(s.groupName)"
-              :loading="subscriptions.loading.value">
-              Отписаться
-            </UiButton>
-          </li>
-        </ul>
-        <p v-else class="home__empty">Вы не подписаны ни на одну группу.</p>
-        <p v-if="subscriptions.error.value" class="home__error">{{ subscriptions.error.value }}</p>
-      </div>
-    </template>
+        <UiCard v-if="showAuthForm" class="home__auth-card">
+          <h2>{{ isLoginMode ? 'Вход' : 'Регистрация' }}</h2>
+          <form @submit.prevent="handleAuth">
+            <UiInput
+              v-model="authForm.email"
+              type="email"
+              label="Email"
+              placeholder="example@mail.com"
+              :error="authError"
+              autocomplete="email"
+            />
+            <UiInput
+              v-model="authForm.password"
+              type="password"
+              label="Пароль"
+              placeholder="••••••••"
+              :error="authError"
+              :autocomplete="isLoginMode ? 'current-password' : 'new-password'"
+            />
+            <div class="home__auth-actions">
+              <UiButton type="submit" :loading="authLoading">
+                {{ isLoginMode ? 'Войти' : 'Зарегистрироваться' }}
+              </UiButton>
+              <UiButton variant="ghost" @click="toggleAuthMode" type="button" :disabled="authLoading">
+                {{ isLoginMode ? 'Нет аккаунта?' : 'Уже есть аккаунт?' }}
+              </UiButton>
+            </div>
+          </form>
+        </UiCard>
+      </template>
+
+      <!-- Авторизованная часть: только подписки -->
+      <template v-else>
+        <SubscriptionList />
+      </template>
+    </main>
+
+    <Sidebar />
   </div>
 </template>
 
 <script setup lang="ts">
 import { useAuthStore } from '~~/stores/auth'
 import { useSubscriptions } from '~/composables/useSubscriptions'
-import { useMyGroups } from '~/composables/useMyGroups'
-import { useToast } from '~/composables/useToast'
+import { useSidebar } from '~/composables/useSidebar'
 
-// --- Состояние авторизации ---
+const logoPath = '/logo.png'
+
 const auth = useAuthStore()
+const subscriptions = useSubscriptions()
+const { toggle } = useSidebar()
+
+// --- Гостевая часть ---
 const authForm = ref({ email: '', password: '' })
 const isLoginMode = ref(true)
 const authLoading = ref(false)
 const authError = ref('')
 const showAuthForm = ref(false)
 
-// --- Композаблы ---
-const subscriptions = useSubscriptions()
-const myGroups = useMyGroups()
+// --- Подписки (гостевые) ---
+function handleGuestSubscribed() {
+  // подписка уже сохранена в localStorage
+}
+function removeLocalKey(key: string) {
+  subscriptions.removeLocalKey(key)
+}
 
-// --- Состояние создания группы ---
-const newGroupName = ref('')
-const createdGroup = ref<{ groupName: string; publicKey: string; secretKey: string } | null>(null)
-
-// --- Состояние отображения ключей ---
-const expandedGroupId = ref<number | null>(null)
-
-// --- Загрузка данных при монтировании ---
-onMounted(async () => {
-  await auth.fetchMe()
-  if (auth.isAuthenticated) {
-    await Promise.all([
-      subscriptions.fetchSubscriptions(),
-      myGroups.fetchMyGroups(),
-    ])
-  }
-})
-
-// --- Обработчики авторизации ---
+// --- Авторизация ---
 async function handleAuth() {
   authError.value = ''
   authLoading.value = true
@@ -235,11 +119,8 @@ async function handleAuth() {
     } else {
       await auth.register(authForm.value.email, authForm.value.password)
     }
-    // Перенос гостевых подписок
     await subscriptions.migrateLocalSubscriptions()
-    // Синхронизация текущего устройства со всеми группами пользователя
     await subscriptions.syncAfterLogin()
-    await myGroups.fetchMyGroups()
     authForm.value = { email: '', password: '' }
     showAuthForm.value = false
   } catch (err: any) {
@@ -254,118 +135,70 @@ function toggleAuthMode() {
   authError.value = ''
 }
 
-async function logout() {
-  await auth.logout()
-  subscriptions.list.value = []
-  myGroups.groups.value = []
-  // При выходе очищаем локальные подписки? Нет, оставляем как есть.
-}
-
-// --- Гостевая подписка ---
-function handleGuestSubscribed(groupName: string) {
-  // ничего не делаем, подписка уже добавлена в localStorage через useSubscriptions
-}
-
-function removeLocalKey(key: string) {
-  subscriptions.removeLocalKey(key)
-}
-
-// --- Создание группы ---
-async function handleCreateGroup() {
-  if (!newGroupName.value.trim()) return
-  try {
-    const result = await myGroups.createGroup(newGroupName.value.trim())
-    createdGroup.value = result
-    newGroupName.value = ''
-
-    // Автоматическая подписка на созданную группу
-    try {
-      await subscriptions.subscribeToGroup(result.publicKey)
-      await subscriptions.fetchSubscriptions()
-    } catch (subErr: any) {
-      console.warn('Автоподписка не удалась:', subErr.message)
-    }
-  } catch (err: any) {
-    // ошибка уже в myGroups.error
-  }
-}
-
-// --- Отображение ключей ---
-function toggleKeys(id: number) {
-  expandedGroupId.value = expandedGroupId.value === id ? null : id
-}
-
-// --- Подписки ---
-async function handleSubscribed(groupName: string) {
-  await subscriptions.fetchSubscriptions()
-}
-
-async function unsubscribe(groupName: string) {
-  try {
-    await subscriptions.unsubscribeGroup(groupName)
-  } catch (err: any) {
-    // ошибка уже в subscriptions.error
-  }
-}
-
-const toast = useToast()
-
-// Состояния для загрузки
-const refreshingKeys = ref<Record<number, boolean>>({})
-const deletingGroup = ref<Record<number, boolean>>({})
-
-// Обновление ключей
-async function refreshKeys(groupId: number) {
-  refreshingKeys.value[groupId] = true
-  try {
-    const result = await $fetch<{ publicKey: string; secretKey: string }>(
-      `/api/group/${groupId}/refresh-keys`,
-      { method: 'POST' }
-    )
-    const group = myGroups.groups.value.find(g => g.id === groupId)
-    if (group) {
-      group.publicKey = result.publicKey
-      group.secretKey = result.secretKey
-    }
-    toast.show('Ключи обновлены', 'success')
-  } catch (err: any) {
-    toast.show(err.message || 'Ошибка обновления ключей', 'error')
-  } finally {
-    delete refreshingKeys.value[groupId]
-  }
-}
-
-// Удаление группы
-async function deleteGroup(groupId: number) {
-  if (!confirm('Вы уверены, что хотите удалить группу? Это действие необратимо.')) return
-  deletingGroup.value[groupId] = true
-  try {
-    await $fetch(`/api/group/${groupId}`, { method: 'DELETE' })
-    myGroups.groups.value = myGroups.groups.value.filter(g => g.id !== groupId)
-    toast.show('Группа удалена', 'success')
-  } catch (err: any) {
-    toast.show(err.message || 'Ошибка удаления группы', 'error')
-  } finally {
-    delete deletingGroup.value[groupId]
-  }
-}
-
-// Копирование ключа с уведомлением
-function copyKey(text: string) {
-  navigator.clipboard.writeText(text)
-    .then(() => toast.show('Скопировано!', 'success'))
-    .catch(() => toast.show('Не удалось скопировать', 'error'))
-}
-
-// --- SEO ---
+// SEO
 useSeoMeta({
   title: 'Главная | Notificate',
   description: 'Управление группами и подписками',
+})
+
+onMounted(async () => {
+  await auth.fetchMe()
+  if (auth.isAuthenticated) {
+    await subscriptions.fetchSubscriptions()
+  }
 })
 </script>
 
 <style scoped lang="scss">
 .home {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    padding: var(--space-4) var(--space-6);
+    background: var(--color-bg-base);
+    border-bottom: 1px solid var(--color-border-default);
+    position: relative;
+    justify-content: center;
+  }
+
+  &__menu-btn {
+    position: absolute;
+    left: var(--space-6);
+    font-size: var(--font-size-2xl);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: var(--space-1);
+    color: var(--color-text-primary);
+    line-height: 1;
+    &:hover {
+      opacity: 0.7;
+    }
+  }
+
+  &__logo {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+
+    img {
+      width: 200px;
+      height: auto;
+    }
+  }
+
+  &__main {
+    flex: 1;
+    padding: var(--space-6);
+    max-width: var(--container-lg);
+    margin: 0 auto;
+    width: 100%;
+  }
+
   &__title {
     text-align: center;
     margin-bottom: var(--space-8);
@@ -373,10 +206,16 @@ useSeoMeta({
     letter-spacing: -0.02em;
   }
 
+  // Гостевая часть
   &__guest-card {
     max-width: 600px;
     margin: 0 auto;
     padding: var(--space-8);
+  }
+
+  &__guest-title {
+    text-align: center;
+    margin-bottom: var(--space-2);
   }
 
   &__guest-hint {
@@ -451,203 +290,6 @@ useSeoMeta({
     align-items: center;
     margin-top: var(--space-2);
     flex-wrap: wrap;
-  }
-
-  &__user-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--space-3) var(--space-4);
-    background: var(--color-bg-muted);
-    border-radius: var(--radius-md);
-    margin-bottom: var(--space-6);
-  }
-
-  &__user-email {
-    font-weight: var(--font-weight-medium);
-  }
-
-  &__create-group {
-    margin-bottom: var(--space-6);
-  }
-
-  &__create-form {
-    display: flex;
-    gap: var(--space-3);
-    flex-wrap: wrap;
-
-    .ui-input {
-      flex: 1;
-      min-width: 200px;
-    }
-  }
-
-  &__created-info {
-    margin-top: var(--space-4);
-    padding: var(--space-4);
-    background: var(--color-success-100);
-    border-radius: var(--radius-md);
-    border-left: 4px solid var(--color-success-500);
-
-    p {
-      margin-bottom: var(--space-2);
-    }
-  }
-
-  &__section {
-    margin-top: var(--space-8);
-  }
-
-  &__group-list,
-  &__subscription-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-    padding: var(--space-2) 0;
-  }
-
-  &__group-item,
-  &__subscription-item {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    padding: var(--space-4) var(--space-5);
-    background: var(--color-bg-subtle);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border-default);
-    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-    flex-wrap: wrap;
-
-    &:hover {
-      border-color: var(--color-border-strong);
-      box-shadow: var(--shadow-xs);
-    }
-  }
-
-  &__group-item {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    padding: var(--space-4) var(--space-5);
-    background: var(--color-bg-subtle);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border-default);
-    flex-wrap: wrap;
-
-    .home__group-name {
-      font-weight: var(--font-weight-medium);
-      flex: 1;
-    }
-
-    .home__group-actions {
-      display: flex;
-      gap: var(--space-2);
-      align-items: center;
-    }
-
-    .home__group-action {
-      min-width: 32px;
-      height: 32px;
-      padding: 0;
-      font-size: var(--font-size-md);
-      line-height: 1;
-      border-radius: var(--radius-full);
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      transition: background var(--transition-fast);
-
-      &:hover {
-        background: var(--color-bg-muted);
-      }
-    }
-
-    .home__key-copy {
-      min-width: 28px;
-      height: 28px;
-      padding: 0;
-      font-size: var(--font-size-sm);
-      line-height: 1;
-      border-radius: var(--radius-full);
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      transition: background var(--transition-fast);
-
-      &:hover {
-        background: var(--color-bg-muted);
-      }
-    }
-  }
-
-  &__group-link,
-  &__subscription-link {
-    font-weight: var(--font-weight-medium);
-    color: var(--color-text-link);
-    transition: color var(--transition-fast);
-
-    &:hover {
-      color: var(--color-text-link-hover);
-      text-decoration: underline;
-    }
-  }
-
-  &__subscription-item {
-    .ui-button {
-      margin-left: auto;
-    }
-  }
-
-  &__keys {
-    width: 100%;
-    padding: var(--space-3) var(--space-4);
-    background: var(--color-bg-base);
-    border-radius: var(--radius-sm);
-    margin-top: var(--space-2);
-    border: 1px dashed var(--color-border-default);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-
-    p {
-      display: flex;
-      align-items: center;
-      gap: var(--space-2);
-      font-size: var(--font-size-sm);
-      margin: 0;
-      word-break: break-all;
-    }
-
-    code {
-      flex: 1;
-      background: var(--color-neutral-100);
-      padding: 0.2rem 0.6rem;
-      border-radius: var(--radius-sm);
-      font-size: 0.9em;
-    }
-
-    .ui-button {
-      flex-shrink: 0;
-    }
-  }
-
-  &__keys-label {
-    font-weight: var(--font-weight-medium);
-    color: var(--color-text-secondary);
-    min-width: 60px;
-  }
-
-  &__error {
-    color: var(--color-error-500);
-    margin-top: var(--space-2);
-    font-size: var(--font-size-sm);
-  }
-
-  &__empty {
-    color: var(--color-text-muted);
-    font-style: italic;
-    padding: var(--space-3);
-    text-align: center;
   }
 }
 </style>

@@ -1,11 +1,6 @@
 <template>
   <div class="app">
     <UiContainer size="lg" class="app__container">
-      <header class="app__header">
-        <NuxtLink to="/" class="app__logo">
-          <img src="/logo.png" alt="Notificate" width="200" height="auto" />
-        </NuxtLink>
-      </header>
       <main class="app__main">
         <NuxtPage />
       </main>
@@ -39,25 +34,6 @@ onMounted(() => {
     min-height: 100vh;
     padding-top: var(--space-4);
     padding-bottom: var(--space-4);
-  }
-
-  &__header {
-    display: flex;
-    justify-content: center;
-    padding: var(--space-6) 0;
-    // линия убрана
-    margin-bottom: var(--space-6);
-  }
-
-  &__logo {
-    display: flex;
-    align-items: center;
-    text-decoration: none;
-
-    img {
-      width: 200px;
-      height: auto;
-    }
   }
 
   &__main {

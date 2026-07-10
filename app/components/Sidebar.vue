@@ -49,14 +49,12 @@ const auth = useAuthStore()
 const myGroups = useMyGroups()
 const { isOpen, close } = useSidebar()
 
-// Загружаем группы при монтировании, если пользователь уже авторизован
 onMounted(() => {
   if (auth.isAuthenticated) {
     myGroups.fetchMyGroups()
   }
 })
 
-// Следим за изменением статуса авторизации
 watch(
   () => auth.isAuthenticated,
   (isAuth) => {
@@ -95,7 +93,6 @@ function onGroupCreated() {
   left: 0;
   bottom: 0;
   width: 100%;
-  max-width: 320px;
   background: var(--color-bg-base);
   box-shadow: var(--shadow-lg);
   z-index: var(--z-modal);
@@ -191,7 +188,7 @@ function onGroupCreated() {
 
 @media (min-width: 768px) {
   .sidebar {
-    max-width: 320px;
+    max-width: 400px; // увеличено с 320px до 400px
   }
 }
 </style>

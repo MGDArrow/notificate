@@ -149,25 +149,30 @@ function copy(text: string) {
   &__item {
     background: var(--color-bg-subtle);
     border-radius: var(--radius-md);
-    padding: var(--space-3);
+    padding: var(--space-2) var(--space-3); // уменьшены вертикальные отступы
     border: 1px solid var(--color-border-default);
 
     &-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: var(--space-2);
+      gap: var(--space-1); // уменьшен зазор
     }
   }
 
   &__name {
     font-weight: var(--font-weight-medium);
-    word-break: break-word;
+    flex: 1;                 // название растягивается
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis; // длинные названия обрезаются
   }
 
   &__actions {
     display: flex;
     gap: var(--space-1);
+    flex-shrink: 0;          // кнопки не сжимаются
   }
 
   &__keys {

@@ -112,26 +112,28 @@ export function useSubscriptions() {
   }
 
   async function unsubscribeGroup(groupName: string) {
-    const registration = await navigator.serviceWorker.ready
-    const subscription = await registration.pushManager.getSubscription()
-    if (!subscription) {
-      throw new Error('Нет активной подписки')
+    const authStore = useAuthStore()
+    const isAuth = authStore.isAuthenticated
+
+    let endpoint = ''
+    if (!isAuth) {
+      const registration = await navigator.serviceWorker.ready
+      const subscription = await registration.pushManager.getSubscription()
+      if (!subscription) {
+        throw new Error('Нет активной подписки')
+      }
+      endpoint = subscription.endpoint
     }
 
     await $fetch('/api/unsubscribe', {
       method: 'POST',
-      body: { endpoint: subscription.endpoint, groupName }
+      body: { groupName, endpoint: isAuth ? undefined : endpoint }
     })
 
-    // Если был гостем, удаляем из локальных
-    const authStore = useAuthStore()
-    if (!authStore.isAuthenticated) {
-      // нужно найти публичный ключ по имени группы? проще удалить все локальные подписки и перезагрузить?
-      // но мы не знаем ключ по имени, поэтому перезагрузим локальные данные? лучше хранить имена тоже
-      // для простоты – очистим локальные и перезагрузим, потом пользователь может подписаться заново
-      clearLocalKeys()
-    } else {
+    if (isAuth) {
       await fetchSubscriptions()
+    } else {
+      clearLocalKeys()
     }
   }
 
@@ -149,6 +151,40 @@ export function useSubscriptions() {
     await fetchSubscriptions()
   }
 
+  // Синхронизация текущего устройства со всеми группами пользователя
+  async function syncAfterLogin() {
+    const config = useRuntimeConfig()
+    const vapidPublicKey = config.public.vapidPublicKey
+    if (!vapidPublicKey) return
+
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      return
+    }
+
+    const permission = await Notification.requestPermission()
+    if (permission !== 'granted') return
+
+    const registration = await navigator.serviceWorker.ready
+    const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey)
+    let subscription = await registration.pushManager.getSubscription()
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey
+      })
+    }
+
+    await $fetch('/api/subscriptions/sync', {
+      method: 'POST',
+      body: {
+        endpoint: subscription.endpoint,
+        keys: subscription.toJSON().keys
+      }
+    })
+
+    await fetchSubscriptions()
+  }
+
   // Инициализация: загружаем локальные ключи
   loadLocalKeys()
 
@@ -161,6 +197,7 @@ export function useSubscriptions() {
     unsubscribeGroup,
     localKeys: readonly(localKeys),
     migrateLocalSubscriptions,
+    syncAfterLogin,
     clearLocalKeys
   }
 }

@@ -106,6 +106,24 @@ export async function addSubscription(
       }
     })
   }
+
+   if (userId) {
+    // Найти все другие подписки пользователя
+    const otherSubscriptions = await prisma.subscription.findMany({
+      where: {
+        userId,
+        id: { not: sub.id }
+      }
+    });
+    for (const other of otherSubscriptions) {
+      await prisma.groupSubscription.create({
+        data: {
+          groupId,
+          subscriptionId: other.id
+        }
+      }).catch(() => {}); // игнорируем дубликаты (уникальное ограничение)
+    }
+  }
 }
 
 export async function removeSubscription(endpoint: string, groupId: number, userId: number | null) {

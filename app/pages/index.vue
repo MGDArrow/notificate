@@ -184,8 +184,10 @@ async function handleAuth() {
     } else {
       await auth.register(authForm.value.email, authForm.value.password)
     }
-    // После успешной авторизации переносим локальные подписки
+    // Перенос гостевых подписок
     await subscriptions.migrateLocalSubscriptions()
+    // Синхронизация текущего устройства со всеми группами пользователя
+    await subscriptions.syncAfterLogin()
     await myGroups.fetchMyGroups()
     authForm.value = { email: '', password: '' }
     showAuthForm.value = false

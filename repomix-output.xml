@@ -72,7 +72,6 @@ public/robots.txt
 public/sw.js
 public/web-app-manifest-192x192.png
 public/web-app-manifest-512x512.png
-README.md
 server/api/auth/login.post.ts
 server/api/auth/logout.post.ts
 server/api/auth/me.get.ts
@@ -901,84 +900,6 @@ self.addEventListener('notificationclick', (event) => {
 })
 </file>
 
-<file path="README.md">
-# Nuxt Minimal Starter
-
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
-
-## Setup
-
-Make sure to install dependencies:
-
-```bash
-# npm
-npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
-```
-
-## Development Server
-
-Start the development server on `http://localhost:3000`:
-
-```bash
-# npm
-npm run dev
-
-# pnpm
-pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
-```
-
-## Production
-
-Build the application for production:
-
-```bash
-# npm
-npm run build
-
-# pnpm
-pnpm build
-
-# yarn
-yarn build
-
-# bun
-bun run build
-```
-
-Locally preview production build:
-
-```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
-```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
-</file>
-
 <file path="server/api/auth/login.post.ts">
 import { z } from 'zod'
 
@@ -1366,21 +1287,6 @@ useSeoMeta({
 </style>
 </file>
 
-<file path="Dockerfile">
-FROM node:20-alpine as builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-
-FROM node:20-alpine
-WORKDIR /app
-COPY --from=builder /app/.output ./.output
-EXPOSE 3000
-CMD ["node", ".output/server/index.mjs"]
-</file>
-
 <file path="prisma/schema.prisma">
 generator client {
   provider = "prisma-client-js"
@@ -1610,31 +1516,6 @@ export default defineEventHandler(async (event) => {
 
   return { success: true }
 })
-</file>
-
-<file path="server/utils/prisma.ts">
-// server/utils/prisma.ts
-import { PrismaPg } from '@prisma/adapter-pg';
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
-const { PrismaClient } = require('@prisma/client');
-
-const prismaClientSingleton = () => {
-  const pool = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
-  return new PrismaClient({ adapter: pool });
-};
-
-type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>;
-
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClientSingleton | undefined;
-};
-const prisma = globalForPrisma.prisma ?? prismaClientSingleton();
-
-export default prisma;
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 </file>
 
 <file path=".gitignore">
@@ -1888,6 +1769,42 @@ async function handleSubscribe() {
   }
 }
 </style>
+</file>
+
+<file path="Dockerfile">
+FROM node:20-alpine as builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM node:20-alpine
+WORKDIR /app
+COPY --from=builder /app/.output ./.output
+EXPOSE 3000
+CMD ["node", ".output/server/index.mjs"]
+</file>
+
+<file path="server/utils/prisma.ts">
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '../../prisma/generated/client';
+
+const prismaClientSingleton = () => {
+  const pool = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+  return new PrismaClient({ adapter: pool });
+};
+
+type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>;
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClientSingleton | undefined;
+};
+const prisma = globalForPrisma.prisma ?? prismaClientSingleton();
+
+export default prisma;
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 </file>
 
 <file path="server/utils/push.ts">
@@ -2375,44 +2292,6 @@ export default defineEventHandler(async (event) => {
 })
 </file>
 
-<file path="package.json">
-{
-  "name": "MGDNotificate",
-  "type": "module",
-  "private": true,
-  "scripts": {
-    "build": "nuxt build",
-    "dev": "nuxt dev",
-    "generate": "nuxt generate",
-    "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
-  },
-  "dependencies": {
-    "@pinia/nuxt": "^0.11.3",
-    "@prisma/adapter-pg": "^7.8.0",
-    "@prisma/client": "^7.8.0",
-    "@vite-pwa/nuxt": "^1.1.1",
-    "dayjs": "^1.11.21",
-    "dotenv": "^17.4.2",
-    "jsonwebtoken": "^9.0.3",
-    "nuxt": "^4.4.8",
-    "pg": "^8.22.0",
-    "pinia": "^3.0.4",
-    "vue": "^3.5.39",
-    "vue-router": "^5.1.0",
-    "web-push": "^3.6.7",
-    "zod": "^4.4.3"
-  },
-  "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/pg": "^8.20.0",
-    "@types/web-push": "^3.6.4",
-    "prisma": "^7.8.0",
-    "sass-embedded": "^1.100.0"
-  }
-}
-</file>
-
 <file path="nuxt.config.ts">
 export default defineNuxtConfig({
   app: {
@@ -2468,6 +2347,44 @@ export default defineNuxtConfig({
     '~/assets/styles/global.scss'
   ],
 })
+</file>
+
+<file path="package.json">
+{
+  "name": "MGDNotificate",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@pinia/nuxt": "^0.11.3",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "@vite-pwa/nuxt": "^1.1.1",
+    "dayjs": "^1.11.21",
+    "jsonwebtoken": "^9.0.3",
+    "nuxt": "^4.4.8",
+    "pg": "^8.22.0",
+    "pinia": "^3.0.4",
+    "vue": "^3.5.39",
+    "vue-router": "^5.1.0",
+    "web-push": "^3.6.7",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/pg": "^8.20.0",
+    "@types/web-push": "^3.6.4",
+    "dotenv": "^17.4.2",
+    "prisma": "^7.8.0",
+    "sass-embedded": "^1.100.0"
+  }
+}
 </file>
 
 </files>

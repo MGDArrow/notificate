@@ -1,9 +1,10 @@
 import prisma from './prisma'
+import { randomBytes } from 'node:crypto';
 
 
 // Генерация случайного ключа (base64url)
 function generateKey(): string {
-  const buf = crypto.randomBytes(32)
+  const buf = randomBytes(32)
   return buf.toString('base64url')
 }
 

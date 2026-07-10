@@ -1,7 +1,7 @@
 // server/api/subscriptions/sync.post.ts
 import { z } from 'zod'
-import prisma from '~/server/utils/prisma'
-import { requireAuth } from '~/server/utils/auth'
+import prisma from '~~/server/utils/prisma'
+import { requireAuth } from '~~/server/utils/auth'
 
 const bodySchema = z.object({
   endpoint: z.string().url(),

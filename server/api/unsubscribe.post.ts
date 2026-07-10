@@ -1,8 +1,8 @@
 // server/api/unsubscribe.post.ts
 import { z } from 'zod'
-import prisma from '~/server/utils/prisma'
-import { getUserIdFromEvent, requireAuth } from '~/server/utils/auth'
-import { getGroupByName } from '~/server/utils/db'
+import prisma from '~~/server/utils/prisma'
+import { getUserIdFromEvent, requireAuth } from '~~/server/utils/auth'
+import { getGroupByName } from '~~/server/utils/db'
 
 const bodySchema = z.object({
   groupName: z.string().min(1),

@@ -40,7 +40,7 @@ export default defineNuxtConfig({
     },
     private: {
       vapidPrivateKey: process.env.NUXT_PRIVATE_VAPID_PRIVATE_KEY,
-      jwtSecret: process.env.NUXT_PRIVATE_VAPID_PRIVATE_KEY,
+      jwtSecret: process.env.NUXT_PRIVATE_JWT_SECRET,
     },
   },
   modules: ['@pinia/nuxt'],

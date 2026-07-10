@@ -12,7 +12,13 @@
         </div>
         <div class="form-group">
           <label>Пароль</label>
-          <input v-model="authForm.password" type="password" required minlength="6" />
+          <input
+  v-model="authForm.password"
+  type="password"
+  required
+  minlength="6"
+  :autocomplete="isLoginMode ? 'current-password' : 'new-password'"
+/>
         </div>
         <div class="auth-actions">
           <button type="submit" :disabled="authLoading">

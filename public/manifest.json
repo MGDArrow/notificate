@@ -1,47 +1,24 @@
 {
-  "name": "Стирка Добра",
-  "short_name": "Стирка Добра",
-  "description": "Управление стирками — Официальный сайт Автономной Некомерческой Организации \"ДоброГорловка\"",
+  "name": "Notificate",
+  "short_name": "Notificate",
+  "description": "Система управления уведомлениями",
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "#a6c729",
-  "background_color": "#ffffff",
+  "theme_color": "#0a6c2f",
+  "background_color": "#e2db64",
   "orientation": "portrait",
-  "icons": [
+    "icons": [
     {
-      "src": "pwa-64x64.png",
-      "sizes": "64x64",
-      "type": "image/png"
-    },
-    {
-      "src": "pwa-192x192.png",
+      "src": "/web-app-manifest-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "pwa-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    },
-    {
-      "src": "maskable-icon-512x512.png",
+      "src": "/web-app-manifest-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable"
-    }
-  ],
-    "screenshots": [
-    {
-      "src": "screenshots/home_desctop.webp",
-      "sizes": "1280x634",
-      "type": "image/webp",
-      "form_factor": "wide"
-    },
-    {
-      "src": "screenshots/home_phone.webp",
-      "sizes": "720x1274",
-      "type": "image/webp",
-      "form_factor": "narrow"
+      "purpose": "any"
     }
   ]
 }

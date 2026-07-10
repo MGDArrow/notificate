@@ -1,9 +1,9 @@
 export default defineNuxtConfig({
   app: {
     head: {
-      title: 'Стирка Добра',
+      title: 'Notificate',
       charset: 'utf-8',
-      viewport: 'width=device-width, initial-scale=1, maximum-scale=2',
+      viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
       htmlAttrs: {
         lang: 'ru',
       },
@@ -11,20 +11,22 @@ export default defineNuxtConfig({
         {
           name: 'description',
           content:
-            'Упрвление стирками — Официальный сайт Автономной Некомерческой Организации "ДоброГорловка"',
+            'Система управления уведомлениями',
         },
-        { name: 'keywords', content: 'АНО, Доброгорловка' },
-        { name: 'theme-color', content: '#a6c729' },
+        { name: 'keywords', content: 'Notificate' },
+        { name: 'theme-color', content: '#e2bd64' },
         { name: 'author', content: 'MGDArrow' },
         { name: 'creator', content: 'MGDArrow' },
         { name: 'robots', content: 'noindex' },
         {
           name: 'apple-mobile-web-app-title',
-          content: 'Упрвление стирками — Доброгорловка',
+          content: 'Notificate',
         },
       ],
       link: [
+        { rel: 'icon', type: 'image/png', href: '/favicon-96x96.png', sizes: '96x96' },
         { rel: 'shortcut icon', href: '/favicon.ico' },
+        { rel: 'apple-touch-icon',  href: '/apple-touch-icon.png', sizes: '180x180' },
         { rel: 'manifest', href: '/manifest.json' },
       ],
     },

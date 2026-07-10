@@ -1,6 +1,5 @@
 import webpush from 'web-push'
-import { useRuntimeConfig } from '#imports'
-import { removeSubscription } from './db' // добавьте импорт
+import { removeSubscription } from './db' 
 
 export async function sendNotification(subscription: any, group: string, message: string) {
   const config = useRuntimeConfig()

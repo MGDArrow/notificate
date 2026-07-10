@@ -1,14 +1,14 @@
-import { getGroupByKey, addSubscription } from '../utils/db'
-import { sendNotification } from '../utils/push'
+import { getGroupByPublicKey, addSubscription } from '../utils/db'
 
 export default defineEventHandler(async (event) => {
-  const { key, subscription } = await readBody(event)
-  const group = getGroupByKey(key)
+  const { key, subscription } = await readBody(event) // key – публичный ключ группы
+  const group = await getGroupByPublicKey(key)
   if (!group) {
     throw createError({ status: 400, message: 'Неверный ключ' })
   }
-  addSubscription(group, subscription)
-  // опционально: отправить приветственное уведомление
-  await sendNotification(subscription,group,  `Вы подписаны на группу ${group}`)
-  return { success: true, group }
+  await addSubscription(group.id, subscription)
+
+  const { sendNotification } = await import('../utils/push')
+  await sendNotification(subscription, group.name, `Вы подписаны на группу ${group.name}`)
+  return { success: true, group: group.name }
 })

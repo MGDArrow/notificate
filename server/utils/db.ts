@@ -1,61 +1,71 @@
-import fs from 'node:fs'
-import path from 'node:path'
+import prisma from './prisma'
 
-const DATA_DIR = path.join(process.cwd(), 'data')
-const KEYS_FILE = path.join(DATA_DIR, 'keys.json')
-const SUBSCRIPTIONS_FILE = path.join(DATA_DIR, 'subscriptions.json')
-const MESSAGES_FILE = path.join(DATA_DIR, 'messages.json')
 
-// инициализация
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
+// Генерация случайного ключа (base64url)
+function generateKey(): string {
+  const buf = crypto.randomBytes(32)
+  return buf.toString('base64url')
+}
 
-function readJSON<T>(file: string): T {
-  try {
-    return JSON.parse(fs.readFileSync(file, 'utf-8'))
-  } catch {
-    return {} as T
+// Создание группы
+export async function createGroup(name: string) {
+  const publicKey = generateKey()
+  const secretKey = generateKey()
+  return await prisma.group.create({
+    data: { name, publicKey, secretKey }
+  })
+}
+
+export async function getGroupByPublicKey(publicKey: string) {
+  return await prisma.group.findUnique({ where: { publicKey } })
+}
+
+export async function getGroupBySecretKey(groupName: string, secretKey: string) {
+  return await prisma.group.findFirst({
+    where: {
+      name: groupName,
+      secretKey: secretKey
+    }
+  })
+}
+
+export async function getSubscriptions(groupId: number) {
+  return await prisma.subscription.findMany({
+    where: { groupId }
+  })
+}
+
+export async function addSubscription(groupId: number, subscription: PushSubscription) {
+  const { endpoint, keys } = subscription;
+  const existing = await prisma.subscription.findUnique({ where: { endpoint } })
+  if (!existing) {
+    await prisma.subscription.create({
+      data: {
+        endpoint,
+        keys: keys as any, // Prisma принимает JSON
+        groupId
+      }
+    })
   }
 }
-function writeJSON(file: string, data: any) {
-  fs.writeFileSync(file, JSON.stringify(data, null, 2))
+
+export async function removeSubscription(endpoint: string) {
+  await prisma.subscription.deleteMany({ where: { endpoint } })
 }
 
-// ключи -> группы
-export function getGroupByKey(key: string): string | null {
-  const map = readJSON<Record<string, string>>(KEYS_FILE)
-  return map[key] || null
+// Сообщения
+export async function getMessages(groupId: number) {
+  return await prisma.message.findMany({
+    where: { groupId },
+    orderBy: { timestamp: 'asc' }
+  })
 }
 
-// подписки: { groupName: [PushSubscription, ...] }
-export function getSubscriptions(group: string): PushSubscription[] {
-  const all = readJSON<Record<string, PushSubscription[]>>(SUBSCRIPTIONS_FILE)
-  return all[group] || []
+export async function addMessage(groupId: number, text: string) {
+  return await prisma.message.create({
+    data: { text, groupId }
+  })
 }
-export function addSubscription(group: string, sub: PushSubscription) {
-  const all = readJSON<Record<string, PushSubscription[]>>(SUBSCRIPTIONS_FILE)
-  if (!all[group]) all[group] = []
-  // избегаем дублей (по endpoint)
-  if (!all[group].some(s => s.endpoint === sub.endpoint)) {
-    all[group].push(sub)
-    writeJSON(SUBSCRIPTIONS_FILE, all)
-  }
-}
-export function removeSubscription(group: string, endpoint: string) {
-  const all = readJSON<Record<string, PushSubscription[]>>(SUBSCRIPTIONS_FILE)
-  if (all[group]) {
-    all[group] = all[group].filter(s => s.endpoint !== endpoint)
-    writeJSON(SUBSCRIPTIONS_FILE, all)
-  }
-}
-
-// сообщения: { groupName: [{ id, text, timestamp }] }
-export function getMessages(group: string) {
-  const all = readJSON<Record<string, any[]>>(MESSAGES_FILE)
-  return all[group] || []
-}
-export function addMessage(group: string, text: string) {
-  const all = readJSON<Record<string, any[]>>(MESSAGES_FILE)
-  if (!all[group]) all[group] = []
-  all[group].push({ id: Date.now(), text, timestamp: new Date().toISOString() })
-  writeJSON(MESSAGES_FILE, all)
+export async function getGroupByName(name: string) {
+  return await prisma.group.findFirst({ where: { name } })
 }

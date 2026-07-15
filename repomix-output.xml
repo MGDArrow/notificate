@@ -48,6 +48,7 @@ app/assets/styles/global.scss
 app/assets/variables.css
 app/components/CreateGroupForm.vue
 app/components/GroupList.vue
+app/components/MessageCard.vue
 app/components/Sidebar.vue
 app/components/SubscribeForm.vue
 app/components/SubscriptionList.vue
@@ -105,709 +106,152 @@ types/types.ts
 <files>
 This section contains the contents of the repository's files.
 
-<file path="app/components/CreateGroupForm.vue">
+<file path="app/components/MessageCard.vue">
+<!-- components/MessageCard.vue -->
 <template>
-  <div class="create-group">
-    <h3 class="create-group__title">Создать группу</h3>
-    <form @submit.prevent="handleCreate" class="create-group__form">
-      <UiInput
-        v-model="groupName"
-        placeholder="Название группы"
-        :disabled="loading"
-      />
-      <UiButton type="submit" :loading="loading">Создать</UiButton>
-    </form>
-    <p v-if="error" class="create-group__error">{{ error }}</p>
-
-    <div v-if="created" class="create-group__result">
-      <p>Группа «<strong>{{ created.groupName }}</strong>» создана!</p>
-      <div class="create-group__keys">
-        <div class="create-group__key-row">
-          <span class="create-group__key-label">Публичный:</span>
-          <code class="create-group__key-code">{{ created.publicKey }}</code>
-          <UiButton
-            variant="ghost"
-            size="sm"
-            @click="copy(created.publicKey)"
-            title="Копировать"
-            class="create-group__copy-btn"
-          >
-            📋
-          </UiButton>
+  <div class="message-card" :class="{ 'message-card--has-type': type }">
+    <!-- Заголовок (если есть) -->
+    <div v-if="title" class="message-card__title">{{ title }}</div>
+    <!-- Основной текст -->
+    <div class="message-card__text">{{ text }}</div>
+    <!-- Дополнительные поля -->
+    <div v-if="type" class="message-card__details">
+      <template v-if="type === 'build'">
+        <div class="message-card__detail">
+          <span class="label">Проект:</span> {{ data.projectName }}
         </div>
-        <div class="create-group__key-row">
-          <span class="create-group__key-label">Секретный:</span>
-          <code class="create-group__key-code">{{ created.secretKey }}</code>
-          <UiButton
-            variant="ghost"
-            size="sm"
-            @click="copy(created.secretKey)"
-            title="Копировать"
-            class="create-group__copy-btn"
-          >
-            📋
-          </UiButton>
+        <div class="message-card__detail">
+          <span class="label">Приложение:</span> {{ data.applicationName }}
         </div>
-      </div>
-      <UiButton variant="ghost" @click="created = null">Закрыть</UiButton>
+        <div class="message-card__detail" v-if="data.buildLink">
+          <span class="label">Ссылка:</span>
+          <a :href="data.buildLink" target="_blank" rel="noopener">Открыть сборку</a>
+        </div>
+        <div class="message-card__detail" v-if="data.status">
+          <span class="label">Статус:</span>
+          <span :class="`status-${data.status}`">{{ data.status }}</span>
+        </div>
+      </template>
+      <template v-else-if="type === 'dokploy-backup'">
+        <div class="message-card__detail">
+          <span class="label">Тип бэкапа:</span> {{ data.backupType }}
+        </div>
+        <div class="message-card__detail">
+          <span class="label">Размер:</span> {{ data.backupSize }}
+        </div>
+        <div class="message-card__detail" v-if="data.status">
+          <span class="label">Статус:</span>
+          <span :class="`status-${data.status}`">{{ data.status }}</span>
+        </div>
+      </template>
+      <!-- Для всех остальных типов или при отсутствии type показываем все поля -->
+      <template v-else>
+        <div v-for="(value, key) in extraFields" :key="key" class="message-card__detail">
+          <span class="label">{{ formatKey(key) }}:</span>
+          <span v-if="isUrl(value)"><a :href="value" target="_blank" rel="noopener">{{ value }}</a></span>
+          <span v-else>{{ value }}</span>
+        </div>
+      </template>
     </div>
+    <div class="message-card__timestamp">{{ formattedTimestamp }}</div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useMyGroups } from '~/composables/useMyGroups'
-import { useToast } from '~/composables/useToast'
-
-const myGroups = useMyGroups()
-const toast = useToast()
-
-const groupName = ref('')
-const loading = ref(false)
-const error = ref('')
-const created = ref<{ groupName: string; publicKey: string; secretKey: string } | null>(null)
-
-async function handleCreate() {
-  const name = groupName.value.trim()
-  if (!name) return
-  loading.value = true
-  error.value = ''
-  try {
-    const result = await myGroups.createGroup(name)
-    created.value = result
-    groupName.value = ''
-    // Автоподписка на созданную группу (если нужно)
-    // Можно оставить или убрать — здесь не трогаем
-  } catch (err: any) {
-    error.value = err.message || 'Ошибка создания группы'
-  } finally {
-    loading.value = false
-  }
-}
-
-function copy(text: string) {
-  navigator.clipboard.writeText(text)
-    .then(() => toast.show('Скопировано!', 'success'))
-    .catch(() => toast.show('Не удалось скопировать', 'error'))
-}
-</script>
-
-<style scoped lang="scss">
-.create-group {
-  &__title {
-    font-size: var(--font-size-md);
-    margin-bottom: var(--space-3);
-  }
-
-  &__form {
-    display: flex;
-    gap: var(--space-2);
-    flex-wrap: wrap;
-
-    .ui-input {
-      flex: 1;
-      min-width: 120px;
-    }
-  }
-
-  &__error {
-    color: var(--color-error-500);
-    font-size: var(--font-size-sm);
-    margin-top: var(--space-2);
-  }
-
-  &__result {
-    margin-top: var(--space-3);
-    padding: var(--space-3);
-    background: var(--color-success-100);
-    border-radius: var(--radius-md);
-    border-left: 4px solid var(--color-success-500);
-  }
-
-  &__keys {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-    margin: var(--space-2) 0;
-  }
-
-  &__key-row {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    font-size: var(--font-size-sm);
-  }
-
-  &__key-label {
-    font-weight: var(--font-weight-medium);
-    color: var(--color-text-secondary);
-    white-space: nowrap;
-  }
-
-  &__key-code {
-    flex: 1;
-    overflow-x: auto;
-    white-space: nowrap;
-    background: var(--color-bg-base);
-    padding: 0.2rem 0.6rem;
-    border-radius: var(--radius-sm);
-    font-family: var(--font-family-mono);
-    font-size: 0.9em;
-    min-width: 0;
-    scrollbar-width: thin;
-  }
-
-  &__copy-btn {
-    flex-shrink: 0;
-    min-width: 28px;
-    height: 28px;
-    padding: 0;
-    font-size: var(--font-size-sm);
-    line-height: 1;
-    border-radius: var(--radius-full);
-  }
-}
-</style>
-</file>
-
-<file path="app/components/GroupList.vue">
-<template>
-  <div v-if="groups.length" class="group-list">
-    <h3 class="group-list__title">Мои группы</h3>
-    <ul class="group-list__items">
-      <li v-for="g in groups" :key="g.id" class="group-list__item">
-        <div class="group-list__item-header">
-          <span class="group-list__name">{{ g.name }}</span>
-          <div class="group-list__actions">
-            <UiButton
-              variant="ghost"
-              size="sm"
-              @click="toggleKeys(g.id)"
-              title="Показать ключи"
-            >
-              👁️
-            </UiButton>
-            <UiButton
-              variant="ghost"
-              size="sm"
-              @click="refresh(g.id)"
-              :loading="refreshing[g.id]"
-              title="Обновить ключи"
-            >
-              🔄
-            </UiButton>
-            <UiButton
-              variant="danger"
-              size="sm"
-              @click="remove(g.id)"
-              :loading="deleting[g.id]"
-              title="Удалить группу"
-            >
-              🗑️
-            </UiButton>
-          </div>
-        </div>
-        <div v-if="expandedId === g.id" class="group-list__keys">
-          <div class="group-list__key-row">
-            <span class="group-list__key-label">Public:</span>
-            <code class="group-list__key-code">{{ g.publicKey }}</code>
-            <UiButton
-              variant="ghost"
-              size="sm"
-              @click="copy(g.publicKey)"
-              class="group-list__copy-btn"
-              title="Копировать"
-            >
-              📋
-            </UiButton>
-          </div>
-          <div class="group-list__key-row">
-            <span class="group-list__key-label">Secret:</span>
-            <code class="group-list__key-code">{{ g.secretKey }}</code>
-            <UiButton
-              variant="ghost"
-              size="sm"
-              @click="copy(g.secretKey)"
-              class="group-list__copy-btn"
-              title="Копировать"
-            >
-              📋
-            </UiButton>
-          </div>
-        </div>
-      </li>
-    </ul>
-  </div>
-</template>
-
-<script setup lang="ts">
-import type { Group } from '~/types/types'
-import { useMyGroups } from '~/composables/useMyGroups'
-import { useToast } from '~/composables/useToast'
+import dayjs from 'dayjs'
 
 const props = defineProps<{
-  groups: Group[]
+  text: string
+  data: any
+  type?: string | null
+  timestamp: string
 }>()
 
-const emit = defineEmits<{
-  refresh: []
-}>()
+const title = computed(() => props.data?.title)
+const formattedTimestamp = computed(() => dayjs(props.timestamp).format('DD.MM.YYYY HH:mm'))
 
-const myGroups = useMyGroups()
-const toast = useToast()
+// Поля, которые не являются служебными (title, message, text, timestamp, type, group)
+const extraFields = computed(() => {
+  if (!props.data) return {}
+  const ignore = ['title', 'message', 'text', 'timestamp', 'type', 'group']
+  return Object.fromEntries(
+    Object.entries(props.data).filter(([key]) => !ignore.includes(key))
+  )
+})
 
-const expandedId = ref<number | null>(null)
-const refreshing = ref<Record<number, boolean>>({})
-const deleting = ref<Record<number, boolean>>({})
-
-function toggleKeys(id: number) {
-  expandedId.value = expandedId.value === id ? null : id
+function formatKey(key: string): string {
+  // Преобразуем camelCase в читаемый заголовок
+  return key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
 }
 
-async function refresh(id: number) {
-  refreshing.value[id] = true
-  try {
-    const result = await $fetch<{ publicKey: string; secretKey: string }>(
-      `/api/group/${id}/refresh-keys`,
-      { method: 'POST' }
-    )
-    const group = props.groups.find(g => g.id === id)
-    if (group) {
-      group.publicKey = result.publicKey
-      group.secretKey = result.secretKey
-    }
-    toast.show('Ключи обновлены', 'success')
-    emit('refresh')
-  } catch (err: any) {
-    toast.show(err.message || 'Ошибка обновления ключей', 'error')
-  } finally {
-    delete refreshing.value[id]
-  }
-}
-
-async function remove(id: number) {
-  if (!confirm('Удалить группу? Это действие необратимо.')) return
-  deleting.value[id] = true
-  try {
-    await $fetch(`/api/group/${id}`, { method: 'DELETE' })
-    toast.show('Группа удалена', 'success')
-    emit('refresh')
-  } catch (err: any) {
-    toast.show(err.message || 'Ошибка удаления группы', 'error')
-  } finally {
-    delete deleting.value[id]
-  }
-}
-
-function copy(text: string) {
-  navigator.clipboard.writeText(text)
-    .then(() => toast.show('Скопировано!', 'success'))
-    .catch(() => toast.show('Не удалось скопировать', 'error'))
+function isUrl(value: any): boolean {
+  return typeof value === 'string' && (value.startsWith('http://') || value.startsWith('https://'))
 }
 </script>
 
 <style scoped lang="scss">
-.group-list {
-  &__title {
-    font-size: var(--font-size-md);
-    margin-bottom: var(--space-3);
+.message-card {
+  background: var(--color-bg-subtle);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--color-primary-300);
+  margin-bottom: var(--space-2);
+
+  &--has-type {
+    border-left-color: var(--color-secondary-500);
   }
 
-  &__items {
+  &__title {
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-md);
+    margin-bottom: var(--space-1);
+    color: var(--color-text-primary);
+  }
+
+  &__text {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-2);
+  }
+
+  &__details {
+    margin: var(--space-2) 0;
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
-  }
-
-  &__item {
-    background: var(--color-bg-subtle);
-    border-radius: var(--radius-md);
-    padding: var(--space-3);
-    border: 1px solid var(--color-border-default);
-
-    &-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: var(--space-2);
-    }
-  }
-
-  &__name {
-    font-weight: var(--font-weight-medium);
-    word-break: break-word;
-  }
-
-  &__actions {
-    display: flex;
     gap: var(--space-1);
   }
 
-  &__keys {
-    margin-top: var(--space-3);
-    padding-top: var(--space-3);
-    border-top: 1px dashed var(--color-border-default);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-  }
-
-  &__key-row {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
+  &__detail {
     font-size: var(--font-size-sm);
-  }
-
-  &__key-label {
-    font-weight: var(--font-weight-medium);
-    color: var(--color-text-secondary);
-    white-space: nowrap;
-  }
-
-  &__key-code {
-    flex: 1;
-    overflow-x: auto;
-    white-space: nowrap;
-    background: var(--color-bg-base);
-    padding: 0.2rem 0.6rem;
-    border-radius: var(--radius-sm);
-    font-family: var(--font-family-mono);
-    font-size: 0.9em;
-    min-width: 0;
-    scrollbar-width: thin;
-  }
-
-  &__copy-btn {
-    flex-shrink: 0;
-    min-width: 28px;
-    height: 28px;
-    padding: 0;
-    font-size: var(--font-size-sm);
-    line-height: 1;
-    border-radius: var(--radius-full);
-  }
-}
-</style>
-</file>
-
-<file path="app/components/Sidebar.vue">
-<template>
-  <Teleport to="body">
-    <Transition name="fade">
-      <div v-if="isOpen" class="sidebar-overlay" @click="close" />
-    </Transition>
-    <Transition name="slide">
-      <aside v-if="isOpen" class="sidebar" role="dialog" aria-label="Боковое меню">
-        <div class="sidebar__header">
-          <span class="sidebar__title">Меню</span>
-          <UiButton variant="ghost" @click="close" class="sidebar__close">
-            ✕
-          </UiButton>
-        </div>
-
-        <div v-if="auth.isAuthenticated" class="sidebar__content">
-          <div class="sidebar__user">
-            <span class="sidebar__email">{{ auth.user?.email }}</span>
-            <UiButton variant="ghost" @click="logout" class="sidebar__logout">
-              Выйти
-            </UiButton>
-          </div>
-
-          <hr class="sidebar__divider" />
-
-          <CreateGroupForm @created="onGroupCreated" />
-
-          <hr class="sidebar__divider" />
-
-          <GroupList
-            :groups="myGroups.groups.value"
-            @refresh="myGroups.fetchMyGroups()"
-          />
-        </div>
-
-        <div v-else class="sidebar__guest">
-          <p>Войдите, чтобы управлять группами</p>
-        </div>
-      </aside>
-    </Transition>
-  </Teleport>
-</template>
-
-<script setup lang="ts">
-import { useAuthStore } from '~~/stores/auth'
-import { useMyGroups } from '~/composables/useMyGroups'
-import { useSidebar } from '~/composables/useSidebar'
-
-const auth = useAuthStore()
-const myGroups = useMyGroups()
-const { isOpen, close } = useSidebar()
-
-// Загружаем группы при монтировании, если пользователь уже авторизован
-onMounted(() => {
-  if (auth.isAuthenticated) {
-    myGroups.fetchMyGroups()
-  }
-})
-
-// Следим за изменением статуса авторизации
-watch(
-  () => auth.isAuthenticated,
-  (isAuth) => {
-    if (isAuth) {
-      myGroups.fetchMyGroups()
-    } else {
-      myGroups.groups.value = []
-    }
-  },
-  { immediate: false }
-)
-
-async function logout() {
-  await auth.logout()
-  myGroups.groups.value = []
-  close()
-}
-
-function onGroupCreated() {
-  myGroups.fetchMyGroups()
-}
-</script>
-
-<style scoped lang="scss">
-.sidebar-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: var(--z-modal);
-  backdrop-filter: blur(2px);
-}
-
-.sidebar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: 100%;
-  max-width: 320px;
-  background: var(--color-bg-base);
-  box-shadow: var(--shadow-lg);
-  z-index: var(--z-modal);
-  display: flex;
-  flex-direction: column;
-  padding: var(--space-4) var(--space-6);
-  overflow-y: auto;
-  transition: transform var(--transition-base);
-
-  &__header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: var(--space-4);
-    padding-bottom: var(--space-3);
-    border-bottom: 1px solid var(--color-border-default);
-  }
-
-  &__title {
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-semibold);
-  }
-
-  &__close {
-    padding: 0;
-    width: 32px;
-    height: 32px;
-    font-size: var(--font-size-lg);
-    line-height: 1;
-    border-radius: var(--radius-full);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    &:hover {
-      background: var(--color-bg-muted);
-    }
-  }
-
-  &__content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-  }
-
-  &__user {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     gap: var(--space-2);
-  }
-
-  &__email {
-    font-weight: var(--font-weight-medium);
-    word-break: break-all;
-  }
-
-  &__logout {
-    flex-shrink: 0;
-  }
-
-  &__divider {
-    border: none;
-    border-top: 1px solid var(--color-border-default);
-    margin: 0;
-  }
-
-  &__guest {
-    padding: var(--space-6) 0;
-    text-align: center;
-    color: var(--color-text-secondary);
-  }
-}
-
-// Анимации
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity var(--transition-base);
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-.slide-enter-active,
-.slide-leave-active {
-  transition: transform var(--transition-base);
-}
-.slide-enter-from,
-.slide-leave-to {
-  transform: translateX(-100%);
-}
-
-@media (min-width: 768px) {
-  .sidebar {
-    max-width: 320px;
-  }
-}
-</style>
-</file>
-
-<file path="app/components/SubscriptionList.vue">
-<template>
-  <div class="subscription-list">
-    <h3 class="subscription-list__title">Мои подписки</h3>
-    <SubscribeForm @subscribed="onSubscribed" />
-    <div v-if="loading" class="subscription-list__loading">
-      <UiSpinner size="sm" />
-    </div>
-    <ul v-else-if="list.length" class="subscription-list__items">
-      <li v-for="s in list" :key="s.id" class="subscription-list__item">
-        <NuxtLink :to="`/group/${s.groupName}`" class="subscription-list__link">
-          {{ s.groupName }}
-        </NuxtLink>
-        <UiButton variant="danger" size="sm" @click="unsubscribe(s.groupName)">
-          Отписаться
-        </UiButton>
-      </li>
-    </ul>
-    <p v-else class="subscription-list__empty">Вы не подписаны ни на одну группу.</p>
-    <p v-if="error" class="subscription-list__error">{{ error }}</p>
-  </div>
-</template>
-
-<script setup lang="ts">
-import { useSubscriptions } from '~/composables/useSubscriptions'
-
-const subscriptions = useSubscriptions()
-const { list, loading, error } = storeToRefs(subscriptions)
-
-async function onSubscribed() {
-  await subscriptions.fetchSubscriptions()
-}
-
-async function unsubscribe(groupName: string) {
-  try {
-    await subscriptions.unsubscribeGroup(groupName)
-  } catch (err: any) {
-    // ошибка уже в subscriptions.error
-  }
-}
-
-// Загружаем при монтировании
-onMounted(() => {
-  subscriptions.fetchSubscriptions()
-})
-</script>
-
-<style scoped lang="scss">
-.subscription-list {
-  &__title {
-    font-size: var(--font-size-2xl);
-    margin-bottom: var(--space-4);
-  }
-
-  &__items {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-    margin-top: var(--space-4);
-  }
-
-  &__item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--space-3) var(--space-4);
-    background: var(--color-bg-subtle);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border-default);
-  }
-
-  &__link {
-    font-weight: var(--font-weight-medium);
-    color: var(--color-text-link);
-    &:hover {
-      text-decoration: underline;
+    .label {
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text-muted);
+      min-width: 80px;
+    }
+    a {
+      color: var(--color-text-link);
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+    .status-success {
+      color: var(--color-success-500);
+    }
+    .status-error {
+      color: var(--color-error-500);
     }
   }
 
-  &__empty {
+  &__timestamp {
+    font-size: var(--font-size-xs);
     color: var(--color-text-muted);
-    font-style: italic;
-    padding: var(--space-4) 0;
-    text-align: center;
-  }
-
-  &__error {
-    color: var(--color-error-500);
     margin-top: var(--space-2);
-  }
-
-  &__loading {
-    display: flex;
-    justify-content: center;
-    padding: var(--space-4);
+    text-align: right;
   }
 }
 </style>
-</file>
-
-<file path="app/composables/useSidebar.ts">
-export const useSidebar = () => {
-  const isOpen = useState<boolean>('sidebar-is-open', () => false)
-
-  const toggle = () => {
-    isOpen.value = !isOpen.value
-  }
-
-  const close = () => {
-    isOpen.value = false
-  }
-
-  const open = () => {
-    isOpen.value = true
-  }
-
-  return { isOpen: readonly(isOpen), toggle, close, open }
-}
 </file>
 
 <file path=".github/workflows/docker.yml">
@@ -1102,6 +546,270 @@ code {
   --container-lg:   1200px;
   --container-xl:   1600px;
 }
+</file>
+
+<file path="app/components/CreateGroupForm.vue">
+<template>
+  <div class="create-group">
+    <h3 class="create-group__title">Создать группу</h3>
+    <form @submit.prevent="handleCreate" class="create-group__form">
+      <UiInput
+        v-model="groupName"
+        placeholder="Название группы"
+        :disabled="loading"
+      />
+      <UiButton type="submit" :loading="loading">Создать</UiButton>
+    </form>
+    <p v-if="error" class="create-group__error">{{ error }}</p>
+
+    <div v-if="created" class="create-group__result">
+      <p>Группа «<strong>{{ created.groupName }}</strong>» создана!</p>
+      <div class="create-group__keys">
+        <div class="create-group__key-row">
+          <span class="create-group__key-label">Публичный:</span>
+          <code class="create-group__key-code">{{ created.publicKey }}</code>
+          <UiButton
+            variant="ghost"
+            size="sm"
+            @click="copy(created.publicKey)"
+            title="Копировать"
+            class="create-group__copy-btn"
+          >
+            📋
+          </UiButton>
+        </div>
+        <div class="create-group__key-row">
+          <span class="create-group__key-label">Секретный:</span>
+          <code class="create-group__key-code">{{ created.secretKey }}</code>
+          <UiButton
+            variant="ghost"
+            size="sm"
+            @click="copy(created.secretKey)"
+            title="Копировать"
+            class="create-group__copy-btn"
+          >
+            📋
+          </UiButton>
+        </div>
+      </div>
+      <UiButton variant="ghost" @click="created = null">Закрыть</UiButton>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { useMyGroups } from '~/composables/useMyGroups'
+import { useToast } from '~/composables/useToast'
+
+const myGroups = useMyGroups()
+const toast = useToast()
+
+const groupName = ref('')
+const loading = ref(false)
+const error = ref('')
+const created = ref<{ groupName: string; publicKey: string; secretKey: string } | null>(null)
+
+async function handleCreate() {
+  const name = groupName.value.trim()
+  if (!name) return
+  loading.value = true
+  error.value = ''
+  try {
+    const result = await myGroups.createGroup(name)
+    created.value = result
+    groupName.value = ''
+    // Автоподписка на созданную группу (если нужно)
+    // Можно оставить или убрать — здесь не трогаем
+  } catch (err: any) {
+    error.value = err.message || 'Ошибка создания группы'
+  } finally {
+    loading.value = false
+  }
+}
+
+function copy(text: string) {
+  navigator.clipboard.writeText(text)
+    .then(() => toast.show('Скопировано!', 'success'))
+    .catch(() => toast.show('Не удалось скопировать', 'error'))
+}
+</script>
+
+<style scoped lang="scss">
+.create-group {
+  &__title {
+    font-size: var(--font-size-md);
+    margin-bottom: var(--space-3);
+  }
+
+  &__form {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+
+    .ui-input {
+      flex: 1;
+      min-width: 120px;
+    }
+  }
+
+  &__error {
+    color: var(--color-error-500);
+    font-size: var(--font-size-sm);
+    margin-top: var(--space-2);
+  }
+
+  &__result {
+    margin-top: var(--space-3);
+    padding: var(--space-3);
+    background: var(--color-success-100);
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--color-success-500);
+  }
+
+  &__keys {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: var(--space-2) 0;
+  }
+
+  &__key-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-sm);
+  }
+
+  &__key-label {
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+  }
+
+  &__key-code {
+    flex: 1;
+    overflow-x: auto;
+    white-space: nowrap;
+    background: var(--color-bg-base);
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-family-mono);
+    font-size: 0.9em;
+    min-width: 0;
+    scrollbar-width: thin;
+  }
+
+  &__copy-btn {
+    flex-shrink: 0;
+    min-width: 28px;
+    height: 28px;
+    padding: 0;
+    font-size: var(--font-size-sm);
+    line-height: 1;
+    border-radius: var(--radius-full);
+  }
+}
+</style>
+</file>
+
+<file path="app/components/SubscriptionList.vue">
+<template>
+  <div class="subscription-list">
+    <h3 class="subscription-list__title">Мои подписки</h3>
+    <SubscribeForm @subscribed="onSubscribed" />
+    <div v-if="loading" class="subscription-list__loading">
+      <UiSpinner size="sm" />
+    </div>
+    <ul v-else-if="list.length" class="subscription-list__items">
+      <li v-for="s in list" :key="s.id" class="subscription-list__item">
+        <NuxtLink :to="`/group/${s.groupName}`" class="subscription-list__link">
+          {{ s.groupName }}
+        </NuxtLink>
+        <UiButton variant="danger" size="sm" @click="unsubscribe(s.groupName)">
+          Отписаться
+        </UiButton>
+      </li>
+    </ul>
+    <p v-else class="subscription-list__empty">Вы не подписаны ни на одну группу.</p>
+    <p v-if="error" class="subscription-list__error">{{ error }}</p>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { useSubscriptions } from '~/composables/useSubscriptions'
+
+const subscriptions = useSubscriptions()
+const { list, loading, error } = storeToRefs(subscriptions)
+
+async function onSubscribed() {
+  await subscriptions.fetchSubscriptions()
+}
+
+async function unsubscribe(groupName: string) {
+  try {
+    await subscriptions.unsubscribeGroup(groupName)
+  } catch (err: any) {
+    // ошибка уже в subscriptions.error
+  }
+}
+
+// Загружаем при монтировании
+onMounted(() => {
+  subscriptions.fetchSubscriptions()
+})
+</script>
+
+<style scoped lang="scss">
+.subscription-list {
+  &__title {
+    font-size: var(--font-size-2xl);
+    margin-bottom: var(--space-4);
+  }
+
+  &__items {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+  }
+
+  &__item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-bg-subtle);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border-default);
+  }
+
+  &__link {
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-link);
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &__empty {
+    color: var(--color-text-muted);
+    font-style: italic;
+    padding: var(--space-4) 0;
+    text-align: center;
+  }
+
+  &__error {
+    color: var(--color-error-500);
+    margin-top: var(--space-2);
+  }
+
+  &__loading {
+    display: flex;
+    justify-content: center;
+    padding: var(--space-4);
+  }
+}
+</style>
 </file>
 
 <file path="app/components/ui/UiButton.vue">
@@ -1549,6 +1257,26 @@ export function useMyGroups() {
 }
 </file>
 
+<file path="app/composables/useSidebar.ts">
+export const useSidebar = () => {
+  const isOpen = useState<boolean>('sidebar-is-open', () => false)
+
+  const toggle = () => {
+    isOpen.value = !isOpen.value
+  }
+
+  const close = () => {
+    isOpen.value = false
+  }
+
+  const open = () => {
+    isOpen.value = true
+  }
+
+  return { isOpen: readonly(isOpen), toggle, close, open }
+}
+</file>
+
 <file path="app/composables/useToast.ts">
 // composables/useToast.ts
 import type { ToastMessage } from '~/types/types'
@@ -1840,28 +1568,477 @@ export const useAuthStore = defineStore('auth', () => {
 }
 </file>
 
+<file path="app/components/GroupList.vue">
+<template>
+  <div v-if="groups.length" class="group-list">
+    <h3 class="group-list__title">Мои группы</h3>
+    <ul class="group-list__items">
+      <li v-for="g in groups" :key="g.id" class="group-list__item">
+        <div class="group-list__item-header">
+          <span class="group-list__name">{{ g.name }}</span>
+          <div class="group-list__actions">
+            <UiButton
+              variant="ghost"
+              size="sm"
+              @click="toggleKeys(g.id)"
+              title="Показать ключи"
+            >
+              👁️
+            </UiButton>
+            <UiButton
+              variant="ghost"
+              size="sm"
+              @click="refresh(g.id)"
+              :loading="refreshing[g.id]"
+              title="Обновить ключи"
+            >
+              🔄
+            </UiButton>
+            <UiButton
+              variant="danger"
+              size="sm"
+              @click="remove(g.id)"
+              :loading="deleting[g.id]"
+              title="Удалить группу"
+            >
+              🗑️
+            </UiButton>
+          </div>
+        </div>
+        <div v-if="expandedId === g.id" class="group-list__keys">
+          <div class="group-list__key-row">
+            <span class="group-list__key-label">Public:</span>
+            <code class="group-list__key-code">{{ g.publicKey }}</code>
+            <UiButton
+              variant="ghost"
+              size="sm"
+              @click="copy(g.publicKey)"
+              class="group-list__copy-btn"
+              title="Копировать"
+            >
+              📋
+            </UiButton>
+          </div>
+          <div class="group-list__key-row">
+            <span class="group-list__key-label">Secret:</span>
+            <code class="group-list__key-code">{{ g.secretKey }}</code>
+            <UiButton
+              variant="ghost"
+              size="sm"
+              @click="copy(g.secretKey)"
+              class="group-list__copy-btn"
+              title="Копировать"
+            >
+              📋
+            </UiButton>
+          </div>
+        </div>
+      </li>
+    </ul>
+  </div>
+</template>
+
+<script setup lang="ts">
+import type { Group } from '~/types/types'
+import { useMyGroups } from '~/composables/useMyGroups'
+import { useToast } from '~/composables/useToast'
+
+const props = defineProps<{
+  groups: Group[]
+}>()
+
+const emit = defineEmits<{
+  refresh: []
+}>()
+
+const myGroups = useMyGroups()
+const toast = useToast()
+
+const expandedId = ref<number | null>(null)
+const refreshing = ref<Record<number, boolean>>({})
+const deleting = ref<Record<number, boolean>>({})
+
+function toggleKeys(id: number) {
+  expandedId.value = expandedId.value === id ? null : id
+}
+
+async function refresh(id: number) {
+  refreshing.value[id] = true
+  try {
+    const result = await $fetch<{ publicKey: string; secretKey: string }>(
+      `/api/group/${id}/refresh-keys`,
+      { method: 'POST' }
+    )
+    const group = props.groups.find(g => g.id === id)
+    if (group) {
+      group.publicKey = result.publicKey
+      group.secretKey = result.secretKey
+    }
+    toast.show('Ключи обновлены', 'success')
+    emit('refresh')
+  } catch (err: any) {
+    toast.show(err.message || 'Ошибка обновления ключей', 'error')
+  } finally {
+    delete refreshing.value[id]
+  }
+}
+
+async function remove(id: number) {
+  if (!confirm('Удалить группу? Это действие необратимо.')) return
+  deleting.value[id] = true
+  try {
+    await $fetch(`/api/group/${id}`, { method: 'DELETE' })
+    toast.show('Группа удалена', 'success')
+    emit('refresh')
+  } catch (err: any) {
+    toast.show(err.message || 'Ошибка удаления группы', 'error')
+  } finally {
+    delete deleting.value[id]
+  }
+}
+
+function copy(text: string) {
+  navigator.clipboard.writeText(text)
+    .then(() => toast.show('Скопировано!', 'success'))
+    .catch(() => toast.show('Не удалось скопировать', 'error'))
+}
+</script>
+
+<style scoped lang="scss">
+.group-list {
+  &__title {
+    font-size: var(--font-size-md);
+    margin-bottom: var(--space-3);
+  }
+
+  &__items {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  &__item {
+    background: var(--color-bg-subtle);
+    border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-3); // уменьшены вертикальные отступы
+    border: 1px solid var(--color-border-default);
+
+    &-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-1); // уменьшен зазор
+    }
+  }
+
+  &__name {
+    font-weight: var(--font-weight-medium);
+    flex: 1;                 // название растягивается
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis; // длинные названия обрезаются
+  }
+
+  &__actions {
+    display: flex;
+    gap: var(--space-1);
+    flex-shrink: 0;          // кнопки не сжимаются
+  }
+
+  &__keys {
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px dashed var(--color-border-default);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  &__key-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-sm);
+  }
+
+  &__key-label {
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+  }
+
+  &__key-code {
+    flex: 1;
+    overflow-x: auto;
+    white-space: nowrap;
+    background: var(--color-bg-base);
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-family-mono);
+    font-size: 0.9em;
+    min-width: 0;
+    scrollbar-width: thin;
+  }
+
+  &__copy-btn {
+    flex-shrink: 0;
+    min-width: 28px;
+    height: 28px;
+    padding: 0;
+    font-size: var(--font-size-sm);
+    line-height: 1;
+    border-radius: var(--radius-full);
+  }
+}
+</style>
+</file>
+
+<file path="app/components/Sidebar.vue">
+<template>
+  <Teleport to="body">
+    <Transition name="fade">
+      <div v-if="isOpen" class="sidebar-overlay" @click="close" />
+    </Transition>
+    <Transition name="slide">
+      <aside v-if="isOpen" class="sidebar" role="dialog" aria-label="Боковое меню">
+        <div class="sidebar__header">
+          <span class="sidebar__title">Меню</span>
+          <UiButton variant="ghost" @click="close" class="sidebar__close">
+            ✕
+          </UiButton>
+        </div>
+
+        <div v-if="auth.isAuthenticated" class="sidebar__content">
+          <div class="sidebar__user">
+            <span class="sidebar__email">{{ auth.user?.email }}</span>
+            <UiButton variant="ghost" @click="logout" class="sidebar__logout">
+              Выйти
+            </UiButton>
+          </div>
+
+          <hr class="sidebar__divider" />
+
+          <CreateGroupForm @created="onGroupCreated" />
+
+          <hr class="sidebar__divider" />
+
+          <GroupList
+            :groups="myGroups.groups.value"
+            @refresh="myGroups.fetchMyGroups()"
+          />
+        </div>
+
+        <div v-else class="sidebar__guest">
+          <p>Войдите, чтобы управлять группами</p>
+        </div>
+      </aside>
+    </Transition>
+  </Teleport>
+</template>
+
+<script setup lang="ts">
+import { useAuthStore } from '~~/stores/auth'
+import { useMyGroups } from '~/composables/useMyGroups'
+import { useSidebar } from '~/composables/useSidebar'
+
+const auth = useAuthStore()
+const myGroups = useMyGroups()
+const { isOpen, close } = useSidebar()
+
+onMounted(() => {
+  if (auth.isAuthenticated) {
+    myGroups.fetchMyGroups()
+  }
+})
+
+watch(
+  () => auth.isAuthenticated,
+  (isAuth) => {
+    if (isAuth) {
+      myGroups.fetchMyGroups()
+    } else {
+      myGroups.groups.value = []
+    }
+  },
+  { immediate: false }
+)
+
+async function logout() {
+  await auth.logout()
+  myGroups.groups.value = []
+  close()
+}
+
+function onGroupCreated() {
+  myGroups.fetchMyGroups()
+}
+</script>
+
+<style scoped lang="scss">
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: var(--z-modal);
+  backdrop-filter: blur(2px);
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  background: var(--color-bg-base);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-modal);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-4) var(--space-6);
+  overflow-y: auto;
+  transition: transform var(--transition-base);
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-4);
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid var(--color-border-default);
+  }
+
+  &__title {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  &__close {
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    font-size: var(--font-size-lg);
+    line-height: 1;
+    border-radius: var(--radius-full);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    &:hover {
+      background: var(--color-bg-muted);
+    }
+  }
+
+  &__content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  &__user {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  &__email {
+    font-weight: var(--font-weight-medium);
+    word-break: break-all;
+  }
+
+  &__logout {
+    flex-shrink: 0;
+  }
+
+  &__divider {
+    border: none;
+    border-top: 1px solid var(--color-border-default);
+    margin: 0;
+  }
+
+  &__guest {
+    padding: var(--space-6) 0;
+    text-align: center;
+    color: var(--color-text-secondary);
+  }
+}
+
+// Анимации
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity var(--transition-base);
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-enter-active,
+.slide-leave-active {
+  transition: transform var(--transition-base);
+}
+.slide-enter-from,
+.slide-leave-to {
+  transform: translateX(-100%);
+}
+
+@media (min-width: 768px) {
+  .sidebar {
+    max-width: 400px; // увеличено с 320px до 400px
+  }
+}
+</style>
+</file>
+
 <file path="app/pages/group/[name].vue">
+<!-- pages/group/[name].vue -->
 <template>
   <div class="group-page">
-    <div class="group-page__header">
+    <header class="group-page__header">
       <NuxtLink to="/" class="group-page__back">← Назад</NuxtLink>
       <h2 class="group-page__title">Группа: {{ route.params.name }}</h2>
-      <UiButton @click="refresh" :loading="loading">Обновить</UiButton>
-    </div>
+      <UiButton
+        @click="refresh"
+        :loading="loading"
+        :disabled="loading"
+      >
+        Обновить
+      </UiButton>
+    </header>
 
+    <!-- Список сообщений -->
     <UiCard v-if="messages.length" class="group-page__messages">
       <ul class="group-page__list">
-        <li v-for="msg in messages" :key="msg.id" class="group-page__message">
-          <span class="group-page__time">{{ formatTime(msg.timestamp) }}</span>
-          <span class="group-page__text">{{ msg.text }}</span>
+        <li
+          v-for="msg in messages"
+          :key="msg.id"
+          class="group-page__message-item"
+        >
+          <MessageCard
+            :text="msg.text"
+            :data="msg.data"
+            :type="msg.type"
+            :timestamp="msg.timestamp"
+          />
         </li>
       </ul>
     </UiCard>
-    <p v-else-if="!loading" class="group-page__empty">Сообщений пока нет</p>
 
+    <!-- Состояние загрузки -->
     <div v-if="loading" class="group-page__skeleton">
       <UiSpinner size="lg" />
     </div>
+
+    <!-- Нет сообщений -->
+    <p v-else-if="!messages.length" class="group-page__empty">
+      Сообщений пока нет
+    </p>
+
+    <!-- Ошибка -->
+    <p v-if="error" class="group-page__error">
+      {{ error }}
+    </p>
   </div>
 </template>
 
@@ -1871,29 +2048,30 @@ import dayjs from 'dayjs'
 const route = useRoute()
 const messages = ref<any[]>([])
 const loading = ref(false)
+const error = ref<string | null>(null)
 
 async function refresh() {
   loading.value = true
+  error.value = null
   try {
     messages.value = await $fetch(`/api/messages?group=${route.params.name}`)
-  } catch (error) {
-    console.error('Ошибка загрузки сообщений', error)
+  } catch (err: any) {
+    error.value = err.message || 'Не удалось загрузить сообщения'
   } finally {
     loading.value = false
   }
 }
 
-function formatTime(timestamp: string) {
-  return dayjs(timestamp).format('DD.MM.YYYY HH:mm')
-}
-
-onMounted(refresh)
-
 // SEO
 useSeoMeta({
   title: `Группа ${route.params.name} | Notificate`,
-  description: `Сообщения группы ${route.params.name}`
+  description: `Сообщения группы ${route.params.name}`,
+  ogTitle: `Группа ${route.params.name}`,
+  ogDescription: `Сообщения группы ${route.params.name}`,
 })
+
+// Загружаем при монтировании
+onMounted(refresh)
 </script>
 
 <style scoped lang="scss">
@@ -1918,10 +2096,13 @@ useSeoMeta({
     margin: 0;
     flex: 1;
     font-size: var(--font-size-2xl);
+    word-break: break-word;
   }
 
   &__messages {
-    padding: var(--space-4);
+    padding: var(--space-2);
+    background: var(--color-bg-base);
+    border: 1px solid var(--color-border-default);
   }
 
   &__list {
@@ -1930,40 +2111,38 @@ useSeoMeta({
     gap: var(--space-2);
   }
 
-  &__message {
-    display: flex;
-    gap: var(--space-4);
-    padding: var(--space-2) var(--space-3);
-    border-radius: var(--radius-md);
-    background: var(--color-bg-subtle);
-    border-left: 3px solid var(--color-primary-300);
-
-    &:nth-child(odd) {
-      background: var(--color-bg-base);
-    }
-  }
-
-  &__time {
-    font-size: var(--font-size-sm);
-    color: var(--color-text-muted);
-    white-space: nowrap;
-    min-width: 130px;
-  }
-
-  &__text {
-    word-break: break-word;
+  &__message-item {
+    list-style: none;
   }
 
   &__empty {
     text-align: center;
     color: var(--color-text-muted);
     padding: var(--space-8);
+    font-style: italic;
+  }
+
+  &__error {
+    color: var(--color-error-500);
+    padding: var(--space-4);
+    border: 1px solid var(--color-border-error);
+    border-radius: var(--radius-md);
+    margin-top: var(--space-4);
+    text-align: center;
   }
 
   &__skeleton {
     display: flex;
     justify-content: center;
     padding: var(--space-8);
+  }
+}
+
+@media (min-width: 768px) {
+  .group-page {
+    &__messages {
+      padding: var(--space-4);
+    }
   }
 }
 </style>
@@ -2015,7 +2194,7 @@ self.addEventListener('push', (event) => {
     body: data.body || 'У вас новое уведомление',
     icon: '/web-app-manifest-192x192.png',
     data: { group: data.group || '' },
-    vibrate: [100, 50, 100],
+    vibrate: [500, 50, 50, 50, 50, 50, 50],
   }
   event.waitUntil(
     self.registration.showNotification(data.title || 'Уведомление', options)
@@ -2441,61 +2620,6 @@ logs
 !.env.example
 </file>
 
-<file path="app/app.vue">
-<template>
-  <div class="app">
-    <UiContainer size="lg" class="app__container">
-      <main class="app__main">
-        <NuxtPage />
-      </main>
-      <footer class="app__footer">
-        <p>&copy; {{ new Date().getFullYear() }} Notificate</p>
-      </footer>
-    </UiContainer>
-    <UiToast />
-  </div>
-</template>
-
-<script setup lang="ts">
-onMounted(() => {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js')
-      .catch(err => console.error('SW registration failed', err))
-  }
-})
-</script>
-
-<style scoped lang="scss">
-.app {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--color-bg-base);
-
-  &__container {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    padding-top: var(--space-4);
-    padding-bottom: var(--space-4);
-  }
-
-  &__main {
-    flex: 1;
-  }
-
-  &__footer {
-    margin-top: var(--space-8);
-    padding-top: var(--space-4);
-    border-top: 1px solid var(--color-border-default);
-    text-align: center;
-    font-size: var(--font-size-sm);
-    color: var(--color-text-muted);
-  }
-}
-</style>
-</file>
-
 <file path="prisma/schema.prisma">
 generator client {
   provider = "prisma-client-js"
@@ -2549,11 +2673,68 @@ model GroupSubscription {
 
 model Message {
   id        Int      @id @default(autoincrement())
-  text      String
+  text      String // основное содержимое (для fallback и push)
+  data      Json? // полный payload (сохраняется как JSON)
+  type      String? // тип, извлекаемый из data.type
   timestamp DateTime @default(now())
   groupId   Int
   group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
 }
+</file>
+
+<file path="app/app.vue">
+<template>
+  <div class="app">
+    <UiContainer size="lg" class="app__container">
+      <main class="app__main">
+        <NuxtPage />
+      </main>
+      <footer class="app__footer">
+        <p>&copy; {{ new Date().getFullYear() }} Notificate</p>
+      </footer>
+    </UiContainer>
+    <UiToast />
+  </div>
+</template>
+
+<script setup lang="ts">
+onMounted(() => {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+      .catch(err => console.error('SW registration failed', err))
+  }
+})
+</script>
+
+<style scoped lang="scss">
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-base);
+
+  &__container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding-top: var(--space-4);
+    padding-bottom: var(--space-4);
+  }
+
+  &__main {
+    flex: 1;
+  }
+
+  &__footer {
+    margin-top: var(--space-8);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border-default);
+    text-align: center;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+  }
+}
+</style>
 </file>
 
 <file path="app/components/SubscribeForm.vue">
@@ -2666,10 +2847,17 @@ export default defineEventHandler(async (event) => {
 </file>
 
 <file path="server/utils/push.ts">
+// server/utils/push.ts
 import webpush from 'web-push'
-import { removeSubscription } from './db' 
+import { removeSubscription } from './db'
 
-export async function sendNotification(subscription: any, group: string, message: string) {
+export async function sendNotification(
+  subscription: any,
+  groupName: string,
+  message: string,
+  title?: string,
+  groupId?: number
+) {
   const config = useRuntimeConfig()
   const publicKey = config.public.vapidPublicKey
   const privateKey = config.private.vapidPrivateKey
@@ -2682,22 +2870,22 @@ export async function sendNotification(subscription: any, group: string, message
   webpush.setVapidDetails('mailto:your-email@example.com', publicKey, privateKey)
 
   const payload = JSON.stringify({
-    title: 'Новое уведомление',
+    title: title || 'Новое уведомление',
     body: message,
-    group: group,
+    group: groupName,
   })
 
   try {
     await webpush.sendNotification(subscription, payload)
   } catch (err: any) {
-    // Если подписка устарела или аннулирована — удаляем её из базы
-    if (err.statusCode === 410) {
-      console.log(`[Push] Removing expired subscription for group ${group}:`, subscription.endpoint)
-      removeSubscription(group, subscription.endpoint)
+    if (err.statusCode === 410 && groupId) {
+      console.log(`[Push] Removing expired subscription for group ${groupName}:`, subscription.endpoint)
+      // Исправленный вызов: endpoint, groupId, userId = null
+      await removeSubscription(subscription.endpoint, groupId, null)
     } else {
       console.error(`[Push] Failed for ${subscription.endpoint}:`, err)
     }
-    throw err // или обработайте по-своему
+    throw err
   }
 }
 </file>
@@ -2782,37 +2970,6 @@ export default defineEventHandler(async (event) => {
   }
 
   return { success: true }
-})
-</file>
-
-<file path="server/api/notify.post.ts">
-import { getSubscriptionsForGroup, addMessage } from '../utils/db'
-import { sendNotification } from '../utils/push'
-
-export default defineEventHandler(async (event) => {
-  const groupName = getHeader(event, 'x-group')
-  const secretKey = getHeader(event, 'x-secret-key')
-  if (!groupName || !secretKey) {
-    throw createError({ status: 400, message: 'Missing x-group or x-secret-key header' })
-  }
-
-  const group = await getGroupBySecretKey(groupName, secretKey)
-  if (!group) {
-    throw createError({ status: 403, message: 'Invalid group or secret key' })
-  }
-
-  const body = await readBody(event)
-  const text = typeof body === 'string' ? body : body.message || 'Новое уведомление'
-
-  await addMessage(group.id, text)
-
-  // Получаем все подписки для группы
-  const subscriptions = await getSubscriptionsForGroup(group.id)
-  const results = await Promise.allSettled(
-    subscriptions.map(sub => sendNotification(sub, group.name, text))
-  )
-
-  return { sent: results.filter(r => r.status === 'fulfilled').length }
 })
 </file>
 
@@ -2994,9 +3151,19 @@ export async function getMessages(groupId: number) {
   })
 }
 
-export async function addMessage(groupId: number, text: string) {
+export async function addMessage(
+  groupId: number,
+  text: string,
+  data?: any,
+  type?: string | null
+) {
   return prisma.message.create({
-    data: { text, groupId }
+    data: {
+      text,
+      groupId,
+      data: data || undefined,
+      type: type || undefined,
+    }
   })
 }
 
@@ -3091,6 +3258,90 @@ export default defineNuxtConfig({
     '~/assets/styles/global.scss'
   ],
 })
+</file>
+
+<file path="server/api/notify.post.ts">
+// server/api/notify.post.ts
+import { getGroupBySecretKey, addMessage, getSubscriptionsForGroup } from '../utils/db'
+import { sendNotification } from '../utils/push'
+
+export default defineEventHandler(async (event) => {
+  const groupName = getHeader(event, 'x-group')
+  const secretKey = getHeader(event, 'x-secret-key')
+  if (!groupName || !secretKey) {
+    throw createError({ status: 400, message: 'Missing x-group or x-secret-key header' })
+  }
+
+  const group = await getGroupBySecretKey(groupName, secretKey)
+  if (!group) {
+    throw createError({ status: 403, message: 'Invalid group or secret key' })
+  }
+
+  let rawBody = await readBody(event)
+  let text: string
+  let data: any = {}
+  let type: string | null = null
+
+  if (typeof rawBody === 'string') {
+    text = rawBody
+    data = { message: rawBody }
+  } else if (rawBody && typeof rawBody === 'object') {
+    data = rawBody
+    text = rawBody.message || rawBody.body || rawBody.text || 'Новое уведомление'
+    type = rawBody.type || null
+  } else {
+    throw createError({ status: 400, message: 'Invalid body format' })
+  }
+
+  await addMessage(group.id, text, data, type)
+
+  const subscriptions = await getSubscriptionsForGroup(group.id)
+  const title = data.title || 'Новое уведомление'
+  const results = await Promise.allSettled(
+    subscriptions.map(sub =>
+      sendNotification(sub, group.name, text, title, group.id)
+    )
+  )
+
+  return { sent: results.filter(r => r.status === 'fulfilled').length }
+})
+</file>
+
+<file path="package.json">
+{
+  "name": "MGDNotificate",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@pinia/nuxt": "^0.11.3",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "dayjs": "^1.11.21",
+    "jsonwebtoken": "^9.0.3",
+    "nuxt": "^4.4.8",
+    "pg": "^8.22.0",
+    "pinia": "^3.0.4",
+    "vue": "^3.5.39",
+    "vue-router": "^5.1.0",
+    "web-push": "^3.6.7",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/pg": "^8.20.0",
+    "@types/web-push": "^3.6.4",
+    "dotenv": "^17.4.2",
+    "prisma": "^7.8.0",
+    "sass-embedded": "^1.100.0"
+  }
+}
 </file>
 
 <file path="app/pages/index.vue">
@@ -3389,43 +3640,6 @@ onMounted(async () => {
   }
 }
 </style>
-</file>
-
-<file path="package.json">
-{
-  "name": "MGDNotificate",
-  "type": "module",
-  "private": true,
-  "scripts": {
-    "build": "nuxt build",
-    "dev": "nuxt dev",
-    "generate": "nuxt generate",
-    "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
-  },
-  "dependencies": {
-    "@pinia/nuxt": "^0.11.3",
-    "@prisma/adapter-pg": "^7.8.0",
-    "@prisma/client": "^7.8.0",
-    "dayjs": "^1.11.21",
-    "jsonwebtoken": "^9.0.3",
-    "nuxt": "^4.4.8",
-    "pg": "^8.22.0",
-    "pinia": "^3.0.4",
-    "vue": "^3.5.39",
-    "vue-router": "^5.1.0",
-    "web-push": "^3.6.7",
-    "zod": "^4.4.3"
-  },
-  "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/pg": "^8.20.0",
-    "@types/web-push": "^3.6.4",
-    "dotenv": "^17.4.2",
-    "prisma": "^7.8.0",
-    "sass-embedded": "^1.100.0"
-  }
-}
 </file>
 
 </files>

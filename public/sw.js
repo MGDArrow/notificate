@@ -11,7 +11,7 @@ self.addEventListener('push', (event) => {
     body: data.body || 'У вас новое уведомление',
     icon: '/web-app-manifest-192x192.png',
     data: { group: data.group || '' },
-    vibrate: [100, 50, 100],
+    vibrate: [500, 50, 50, 50, 50, 50, 50],
   }
   event.waitUntil(
     self.registration.showNotification(data.title || 'Уведомление', options)

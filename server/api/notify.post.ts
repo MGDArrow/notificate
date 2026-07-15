@@ -1,4 +1,5 @@
-import { getSubscriptionsForGroup, addMessage } from '../utils/db'
+// server/api/notify.post.ts
+import { getGroupBySecretKey, addMessage, getSubscriptionsForGroup } from '../utils/db'
 import { sendNotification } from '../utils/push'
 
 export default defineEventHandler(async (event) => {
@@ -13,16 +14,30 @@ export default defineEventHandler(async (event) => {
     throw createError({ status: 403, message: 'Invalid group or secret key' })
   }
 
-  const body = await readBody(event)
-  console.log(body);
-  const text = typeof body === 'string' ? body : body.message || 'Новое уведомление'
+  let rawBody = await readBody(event)
+  let text: string
+  let data: any = {}
+  let type: string | null = null
 
-  await addMessage(group.id, text)
+  if (typeof rawBody === 'string') {
+    text = rawBody
+    data = { message: rawBody }
+  } else if (rawBody && typeof rawBody === 'object') {
+    data = rawBody
+    text = rawBody.message || rawBody.body || rawBody.text || 'Новое уведомление'
+    type = rawBody.type || null
+  } else {
+    throw createError({ status: 400, message: 'Invalid body format' })
+  }
 
-  // Получаем все подписки для группы
+  await addMessage(group.id, text, data, type)
+
   const subscriptions = await getSubscriptionsForGroup(group.id)
+  const title = data.title || 'Новое уведомление'
   const results = await Promise.allSettled(
-    subscriptions.map(sub => sendNotification(sub, group.name, text))
+    subscriptions.map(sub =>
+      sendNotification(sub, group.name, text, title, group.id)
+    )
   )
 
   return { sent: results.filter(r => r.status === 'fulfilled').length }

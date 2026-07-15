@@ -50,7 +50,9 @@ model GroupSubscription {
 
 model Message {
   id        Int      @id @default(autoincrement())
-  text      String
+  text      String // основное содержимое (для fallback и push)
+  data      Json? // полный payload (сохраняется как JSON)
+  type      String? // тип, извлекаемый из data.type
   timestamp DateTime @default(now())
   groupId   Int
   group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)

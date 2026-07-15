@@ -175,9 +175,19 @@ export async function getMessages(groupId: number) {
   })
 }
 
-export async function addMessage(groupId: number, text: string) {
+export async function addMessage(
+  groupId: number,
+  text: string,
+  data?: any,
+  type?: string | null
+) {
   return prisma.message.create({
-    data: { text, groupId }
+    data: {
+      text,
+      groupId,
+      data: data || undefined,
+      type: type || undefined,
+    }
   })
 }
 
